@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The 2025 State of Managed PostgreSQL: Interactive Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate Gray & Amber -->
+    <!-- Application Structure Plan: The application is designed as an interactive dashboard, diverging from the linear report format for enhanced usability. The structure includes: 1) A 'Provider Explorer' for focused deep-dives, 2) An interactive 'Cost Calculator' to visualize pricing scenarios, 3) A filterable 'Feature Comparison' table, and 4) A 'Recommendation Wizard' to provide personalized suggestions. This task-oriented design allows technical leaders to quickly access specific information pertinent to their decision-making (e.g., cost, specific features), making the dense report content more digestible and actionable than a simple document view. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Pricing Table -> Goal: Compare Cost -> Viz: Interactive Bar Chart -> Interaction: Scenario Selector Buttons -> Justification: Dynamically visualizing cost scenarios is more engaging and easier to compare than a static table. -> Library/Method: Chart.js.
+        - Report Info: Technical Feature Matrix -> Goal: Compare Features -> Viz: Filterable HTML Table -> Interaction: Feature Checkbox Filters -> Justification: Allows users to quickly narrow down the list of providers to only those meeting their essential technical criteria. -> Library/Method: Vanilla JS DOM manipulation.
+        - Report Info: Strategic Recommendations Section -> Goal: Guide User Choice -> Viz: Interactive "Wizard" (multi-step form) -> Interaction: User answers persona-based questions -> Justification: Personalizes the report's broad recommendations, making the advice more direct and actionable for the user's specific context. -> Library/Method: Vanilla JS.
+        - Report Info: Provider Deep Dives -> Goal: Inform in detail -> Viz: Modal overlay -> Interaction: Click on provider logo -> Justification: Uses a modal to present detailed information without navigating away from the main dashboard, keeping the user in context and preventing information overload. -> Library/Method: Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 900px; margin-left: auto; margin-right: auto; height: 300px; max-height: 50vh; }
+        @media (min-width: 768px) { .chart-container { height: 450px; } }
+        .active-nav { color: #f59e0b; border-bottom-color: #f59e0b; }
+        .inactive-nav { color: #475569; border-bottom-color: transparent; }
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 300ms ease-out; }
+        .modal-leave-active { opacity: 0; transform: scale(0.95); transition: all 200ms ease-in; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-700 antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-40 border-b border-slate-200">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl md:text-2xl font-bold text-slate-800">PostgreSQL Provider Report <span class="text-amber-500">2025</span></h1>
+                <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
+                    <a href="#summary" class="inactive-nav hover:text-amber-500 transition-colors border-b-2 pb-1">Summary</a>
+                    <a href="#cost" class="inactive-nav hover:text-amber-500 transition-colors border-b-2 pb-1">Cost Comparison</a>
+                    <a href="#features" class="inactive-nav hover:text-amber-500 transition-colors border-b-2 pb-1">Feature Explorer</a>
+                    <a href="#recommendations" class="inactive-nav hover:text-amber-500 transition-colors border-b-2 pb-1">Get Recommendation</a>
+                </nav>
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-slate-100">
+                    <span class="w-6 h-0.5 bg-slate-600 block my-1"></span>
+                    <span class="w-6 h-0.5 bg-slate-600 block my-1"></span>
+                    <span class="w-6 h-0.5 bg-slate-600 block my-1"></span>
+                </button>
+            </div>
+             <div id="mobile-menu" class="hidden md:hidden py-4 border-t border-slate-200">
+                <a href="#summary" class="block py-2 text-slate-600 hover:text-amber-500">Summary</a>
+                <a href="#cost" class="block py-2 text-slate-600 hover:text-amber-500">Cost Comparison</a>
+                <a href="#features" class="block py-2 text-slate-600 hover:text-amber-500">Feature Explorer</a>
+                <a href="#recommendations" class="block py-2 text-slate-600 hover:text-amber-500">Get Recommendation</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        
+        <!-- Executive Summary & Provider Explorer -->
+        <section id="summary" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">The 2025 PostgreSQL Landscape</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">
+                The managed PostgreSQL market is split between hyperscale cloud providers offering immense power and specialized, developer-centric platforms innovating on ease of use, serverless architecture, and workflow integration. This interactive report helps you navigate this landscape.
+            </p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+                <div id="aws" data-provider="aws" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-gray-800 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">AWS</span></div>
+                    <span class="font-semibold text-sm">AWS</span>
+                </div>
+                 <div id="gcp" data-provider="gcp" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-blue-600 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">GCP</span></div>
+                    <span class="font-semibold text-sm">Google Cloud</span>
+                </div>
+                <div id="azure" data-provider="azure" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-blue-500 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">AZ</span></div>
+                    <span class="font-semibold text-sm">Azure</span>
+                </div>
+                 <div id="neon" data-provider="neon" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-green-500 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">NE</span></div>
+                    <span class="font-semibold text-sm">Neon</span>
+                </div>
+                <div id="supabase" data-provider="supabase" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-emerald-500 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">SB</span></div>
+                    <span class="font-semibold text-sm">Supabase</span>
+                </div>
+                 <div id="aiven" data-provider="aiven" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-red-600 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">AV</span></div>
+                    <span class="font-semibold text-sm">Aiven</span>
+                </div>
+                <div id="digitalocean" data-provider="digitalocean" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-sky-600 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">DO</span></div>
+                    <span class="font-semibold text-sm">DigitalOcean</span>
+                </div>
+                <div id="timescale" data-provider="timescale" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-purple-600 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">TS</span></div>
+                    <span class="font-semibold text-sm">Timescale</span>
+                </div>
+                <div id="crunchy" data-provider="crunchy" class="provider-logo p-4 bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:border-amber-400 transition-all text-center">
+                    <div class="h-10 w-10 mx-auto bg-orange-600 flex items-center justify-center rounded-lg mb-2"><span class="font-bold text-white text-sm">CB</span></div>
+                    <span class="font-semibold text-sm">Crunchy Bridge</span>
+                </div>
+            </div>
+            <p class="max-w-3xl mx-auto text-center text-slate-500 text-sm">Click a logo to explore a provider's offerings in detail.</p>
+        </section>
+
+        <!-- Cost Comparison -->
+        <section id="cost" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">Interactive Cost Comparison</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">
+                Select a workload scenario to see estimated monthly costs. These are on-demand estimates and don't include long-term commitment discounts.
+            </p>
+            <div class="flex justify-center space-x-2 mb-8">
+                <button data-scenario="small" class="scenario-btn bg-amber-500 text-white font-semibold py-2 px-4 rounded-full shadow">Small Dev/Hobby</button>
+                <button data-scenario="medium" class="scenario-btn bg-white text-slate-700 font-semibold py-2 px-4 rounded-full shadow">Medium Production</button>
+                <button data-scenario="large" class="scenario-btn bg-white text-slate-700 font-semibold py-2 px-4 rounded-full shadow">Large I/O-Intensive</button>
+            </div>
+            <div class="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-slate-200">
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Explorer -->
+        <section id="features" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">Feature Explorer</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">
+                Compare providers based on key technical and operational features. Use the filters to find providers that match your specific requirements.
+            </p>
+            <div class="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-slate-200">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" data-feature="serverless" class="feature-filter h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm font-medium">Serverless</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" data-feature="branching" class="feature-filter h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm font-medium">DB Branching</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" data-feature="baas" class="feature-filter h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm font-medium">Integrated BaaS</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" data-feature="soc2" class="feature-filter h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm font-medium">SOC 2</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" data-feature="hipaa" class="feature-filter h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span class="text-sm font-medium">HIPAA</span>
+                    </label>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                            <tr>
+                                <th scope="col" class="py-3 px-6">Provider</th>
+                                <th scope="col" class="py-3 px-6">PG Versions</th>
+                                <th scope="col" class="py-3 px-6">HA Model</th>
+                                <th scope="col" class="py-3 px-6">SLA</th>
+                                <th scope="col" class="py-3 px-6">Max PITR</th>
+                            </tr>
+                        </thead>
+                        <tbody id="features-table-body">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recommendation Wizard -->
+        <section id="recommendations" class="scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">Find Your Perfect Provider</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">
+                Answer a few questions about your priorities, and we'll suggest providers that are the best fit based on the report's strategic analysis.
+            </p>
+            <div class="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-lg border border-slate-200">
+                <div id="wizard-content">
+                    <!-- Step 1 -->
+                    <div class="wizard-step active" data-step="1">
+                        <h3 class="font-semibold text-lg mb-4">What is your primary goal?</h3>
+                        <div class="space-y-3">
+                            <button data-value="enterprise" class="wizard-btn w-full text-left p-4 border rounded-lg hover:bg-slate-50 hover:border-amber-400">
+                                <strong class="block">Enterprise Reliability & Scale</strong>
+                                <span class="text-sm text-slate-500">For mission-critical apps needing high availability and compliance.</span>
+                            </button>
+                             <button data-value="developer" class="wizard-btn w-full text-left p-4 border rounded-lg hover:bg-slate-50 hover:border-amber-400">
+                                <strong class="block">Developer Velocity</strong>
+                                <span class="text-sm text-slate-500">For rapid development, CI/CD integration, and modern workflows.</span>
+                            </button>
+                             <button data-value="startup" class="wizard-btn w-full text-left p-4 border rounded-lg hover:bg-slate-50 hover:border-amber-400">
+                                <strong class="block">Cost Control & Simplicity</strong>
+                                <span class="text-sm text-slate-500">For startups and SMBs prioritizing low cost and ease of use.</span>
+                            </button>
+                            <button data-value="specialized" class="wizard-btn w-full text-left p-4 border rounded-lg hover:bg-slate-50 hover:border-amber-400">
+                                <strong class="block">Specialized Workload</strong>
+                                <span class="text-sm text-slate-500">For specific use cases like AI/ML, IoT, or multi-cloud.</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="recommendation-result" class="hidden">
+                    <h3 class="font-semibold text-lg mb-2">Our Recommendation For You:</h3>
+                    <div id="result-title" class="text-2xl font-bold text-amber-600 mb-4"></div>
+                    <div id="result-analysis" class="prose prose-slate max-w-none"></div>
+                    <button id="restart-wizard" class="mt-6 bg-amber-500 text-white font-semibold py-2 px-4 rounded-full shadow hover:bg-amber-600 transition-colors">Start Over</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal -->
+    <div id="provider-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform modal-enter">
+             <!-- Content will be injected by JS -->
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const DB = {
+            costs: {
+                labels: ["AWS RDS", "AWS Aurora (Std)", "AWS Aurora (I/O Opt)", "Google Cloud SQL", "Google AlloyDB", "Azure Flex Server", "DigitalOcean", "Aiven", "Neon", "Supabase", "Timescale", "Crunchy Bridge"],
+                small: [28, 60, 75, 25, null, 15, 15, 19, 0, 0, 30, 35],
+                medium: [405, 495, 550, 370, 650, 350, 185, 200, 59, 99, 150, 305],
+                large: [2090, 2700, 2950, 1800, 2850, 1850, 1180, 900, 299, 599, 600, 1220],
+            },
+            features: [
+                { name: "AWS RDS", pg_versions: "13-16+", ha_model: "Standby Node", sla: "99.95% (Multi-AZ)", pitr: "35 days", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "AWS Aurora", pg_versions: "13-16+", ha_model: "Built-in (6 replicas)", sla: "99.99%", pitr: "35 days", serverless: true, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "Google Cloud SQL", pg_versions: "13-16+", ha_model: "Standby Node", sla: "99.95% (HA)", pitr: "35 days", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "Google AlloyDB", pg_versions: "14-16+", ha_model: "Built-in", sla: "99.99%", pitr: "35 days", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "Azure Flexible Server", pg_versions: "11-16+", ha_model: "Standby Node", sla: "99.99% (Zone-Redundant)", pitr: "35 days", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "Neon", pg_versions: "14-17", ha_model: "Built-in", sla: "99.95% (Business)", pitr: "30 days (Business)", serverless: true, branching: true, baas: false, soc2: true, hipaa: true },
+                { name: "Supabase", pg_versions: "15.1+", ha_model: "Tier-dependent", sla: "99.9% (Enterprise)", pitr: "14 days (Team)", serverless: false, branching: false, baas: true, soc2: true, hipaa: true },
+                { name: "Aiven", pg_versions: "13-17", ha_model: "Standby Node", sla: "99.99%", pitr: "30 days (Premium)", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "DigitalOcean", pg_versions: "13-17", ha_model: "Standby Node", sla: "99.95% (HA)", pitr: "7 days", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "Timescale", pg_versions: "15-16", ha_model: "Multi-AZ Replica", sla: "Standard/Enterprise", pitr: "14 days (Scale)", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+                { name: "Crunchy Bridge", pg_versions: "14-17", ha_model: "Standby Node", sla: "N/A", pitr: "10+ days", serverless: false, branching: false, baas: false, soc2: true, hipaa: true },
+            ],
+            recommendations: {
+                enterprise: {
+                    title: "Enterprise CTO",
+                    candidates: "Google AlloyDB & Amazon Aurora",
+                    analysis: `
+                        <p>For large-scale, mission-critical enterprise applications, the choice narrows to the two premier cloud-native offerings. Both AlloyDB and Aurora are architecturally superior to standard managed services, providing built-in high availability with 99.99% uptime SLAs, exceptional performance, and deep security and compliance features essential for enterprise governance.</p>
+                        <p class="mt-2"><strong>AlloyDB</strong> presents a compelling case based on its predictable, I/O-inclusive pricing model, which eliminates a significant source of cost variability. Its integrated columnar engine for high-speed analytics offers a path to simplifying complex data architectures. <strong>Aurora</strong> remains the incumbent market leader with a proven track record and a vast ecosystem. Its I/O-Optimized tier now offers a path to cost predictability.</p>
+                        <p class="mt-2">The final decision will likely hinge on an organization's existing cloud commitment (AWS vs. GCP) and a detailed TCO analysis.</p>
+                    `
+                },
+                developer: {
+                    title: "Modern Application Developer",
+                    candidates: "Neon & Supabase",
+                    analysis: `
+                        <p>These platforms are not just hosting databases; they are selling opinionated, highly efficient development workflows.</p>
+                        <p class="mt-2"><strong>Neon</strong> is the unequivocal choice for teams seeking to revolutionize their testing and deployment processes. Its instantaneous, zero-cost <strong>database branching</strong> is a transformative feature that allows for the creation of isolated database environments for every pull request.</p>
+                        <p class="mt-2"><strong>Supabase</strong> is the ideal platform for teams looking to build and launch new applications with maximum speed. By bundling a Postgres database with a complete suite of backend services—authentication, file storage, auto-generated APIs—it drastically reduces the amount of boilerplate code and infrastructure management required.</p>
+                    `
+                },
+                 startup: {
+                    title: "Lean Startup & SMB",
+                    candidates: "DigitalOcean, AWS RDS, & Azure Flexible Server",
+                    analysis: `
+                        <p>For startups and small-to-medium businesses where every dollar counts, the focus is on providers with the lowest barrier to entry and the most predictable cost structures.</p>
+                        <p class="mt-2"><strong>DigitalOcean</strong> excels in this category, offering a famously simple user interface and a straightforward, all-inclusive pricing model. Its generous bandwidth allowance is another significant cost advantage.</p>
+                        <p class="mt-2">The standard offerings from the hyperscalers are also highly viable, particularly when leveraging their free tiers or smallest <strong>Burstable</strong> instances. An AWS RDS <code>t4g.micro</code> or an Azure Flexible Server <code>B1ms</code> instance provides a fully managed Postgres database for a minimal monthly outlay, with a clear upgrade path.</p>
+                    `
+                },
+                 specialized: {
+                    title: "Specialized Workloads (AI, IoT, Multi-Cloud)",
+                    candidates: "Google AlloyDB (AI), Timescale (IoT), Aiven (Multi-Cloud)",
+                    analysis: `
+                        <p>For workloads with very specific requirements, a general-purpose database may not be the most efficient choice.</p>
+                        <p class="mt-2"><strong>AI/ML: Google AlloyDB</strong> stands out for its deep integration and optimization for vector workloads, leveraging Google's proprietary ScaNN index for faster query performance critical for RAG systems.</p>
+                        <p class="mt-2"><strong>IoT/Time-Series: Timescale</strong> is fundamentally architected for time-series data, with features like hypertables and columnar compression that dramatically outperform general-purpose databases for these workloads.</p>
+                        <p class="mt-2"><strong>Multi-Cloud: Aiven</strong> provides a consistent, managed open-source data platform across AWS, GCP, and Azure. Its all-inclusive pricing model eliminates cost uncertainty from networking and I/O, making it ideal for multi-cloud strategies.</p>
+                    `
+                },
+            },
+            providerDetails: {
+                aws: {
+                    name: 'Amazon Web Services (AWS)',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Amazon Web Services: RDS & Aurora</h3>
+                            <p class="mb-6 text-slate-600">AWS employs a powerful two-pronged strategy with RDS as the reliable workhorse and Aurora as the high-performance, cloud-native evolution. This caters to a wide spectrum of users, from migrations to high-scale new builds.</p>
+                            
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="bg-slate-50 p-4 rounded-lg border">
+                                    <h4 class="font-bold text-lg mb-2">Amazon RDS for PostgreSQL</h4>
+                                    <p class="text-sm text-slate-600">The quintessential managed service, ideal for general-purpose apps and migrations. It offers predictable instance-based pricing and optional Multi-AZ high availability.</p>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-lg border">
+                                    <h4 class="font-bold text-lg mb-2">Amazon Aurora (PostgreSQL-Compatible)</h4>
+                                    <p class="text-sm text-slate-600">A cloud-native database with disaggregated compute and storage. Delivers superior performance and resilience (99.99% SLA) with data replicated 6 ways across 3 AZs. Ideal for mission-critical applications.</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <h4 class="font-semibold text-lg mb-2">Key Strategic Insight</h4>
+                                <p class="text-sm text-slate-600 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">AWS provides a seamless upgrade path. Startups can begin on a cheap RDS instance and migrate to the powerful Aurora engine as they scale, all within the same ecosystem. The Aurora I/O-Optimized pricing tier is a direct response to competitor pressure, offering cost predictability for I/O-heavy workloads at a higher fixed price.</p>
+                            </div>
+                        </div>
+                    `
+                },
+                gcp: {
+                    name: 'Google Cloud Platform (GCP)',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Google Cloud Platform: Cloud SQL & AlloyDB</h3>
+                            <p class="mb-6 text-slate-600">Similar to AWS, GCP offers a two-tiered approach with the versatile Cloud SQL and the premium, high-performance AlloyDB, engineered to compete at the highest level of the market.</p>
+                            
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="bg-slate-50 p-4 rounded-lg border">
+                                    <h4 class="font-bold text-lg mb-2">Google Cloud SQL for PostgreSQL</h4>
+                                    <p class="text-sm text-slate-600">A reliable, easy-to-use managed service for general-purpose applications. Integrates seamlessly with the GCP ecosystem and offers significant Committed Use Discounts (CUDs).</p>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-lg border">
+                                    <h4 class="font-bold text-lg mb-2">Google AlloyDB for PostgreSQL</h4>
+                                    <p class="text-sm text-slate-600">Google's flagship database and direct competitor to Aurora. Claims 4x faster transactional performance and up to 100x faster analytical queries due to a built-in columnar engine. Features industry-leading AI/vector search capabilities.</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <h4 class="font-semibold text-lg mb-2">Key Strategic Insight</h4>
+                                <p class="text-sm text-slate-600 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">AlloyDB is precision-engineered to target Aurora's weaknesses. Its marketing heavily emphasizes predictable pricing with "no opaque I/O charges" — a direct attack on Aurora Standard's variable cost model. The integration of Gemini for natural language SQL generation raises the bar for database developer experience.</p>
+                            </div>
+                        </div>
+                    `
+                },
+                azure: {
+                    name: 'Microsoft Azure',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Microsoft Azure: Flexible & Scalable</h3>
+                            <p class="mb-6 text-slate-600">Azure's approach is characterized by flexibility and catering to its vast enterprise customer base, leveraging best-in-class open source tech for specialized needs.</p>
+                            
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="bg-slate-50 p-4 rounded-lg border">
+                                    <h4 class="font-bold text-lg mb-2">Azure Database for PostgreSQL - Flexible Server</h4>
+                                    <p class="text-sm text-slate-600">Azure's primary offering with multiple compute tiers (Burstable, General Purpose, Memory Optimized) to match hardware to workloads. Offers significant discounts via Reserved Capacity.</p>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-lg border">
+                                    <h4 class="font-bold text-lg mb-2">Azure Cosmos DB for PostgreSQL</h4>
+                                    <p class="text-sm text-slate-600">Built on the open-source Citus extension, this service transforms Postgres into a horizontally scalable, sharded cluster. It's designed for massive SaaS and real-time analytic workloads that have outgrown a single server.</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <h4 class="font-semibold text-lg mb-2">Key Strategic Insight</h4>
+                                <p class="text-sm text-slate-600 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">Instead of building a cloud-native engine from scratch like AWS and GCP, Azure acquired Citus Data and integrated its proven sharding technology. This pragmatic approach delivers a powerful scale-out solution while focusing on practical integration for its core enterprise customers.</p>
+                            </div>
+                        </div>
+                    `
+                },
+                neon: {
+                    name: 'Neon',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Neon: The Serverless Postgres Revolution</h3>
+                             <p class="mb-6 text-slate-600">Neon delivers a true serverless PostgreSQL experience, built on a unique architecture that completely separates storage from compute. It's designed to fundamentally change the cost and workflow of development.</p>
+                            <div class="bg-slate-50 p-4 rounded-lg border">
+                                <h4 class="font-bold text-lg mb-2">Core Value Proposition</h4>
+                                <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                                    <li><strong>Scale to Zero:</strong> Compute resources scale down to zero when idle. You only pay for active query processing time, making it incredibly cost-effective for dev/staging and variable workloads.</li>
+                                    <li><strong>Instant Database Branching:</strong> Leveraging a copy-on-write storage engine, you can create instantaneous, isolated, and fully functional copies of your database for every CI/CD pipeline run. This revolutionizes testing and schema migration workflows.</li>
+                                    <li><strong>Developer-Centric:</strong> A modern platform focused on developer velocity, with support for PostgreSQL 14-17 and a generous free tier to get started.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                supabase: {
+                    name: 'Supabase',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Supabase: The All-in-One Backend Platform</h3>
+                             <p class="mb-6 text-slate-600">Supabase positions itself as an open-source alternative to Firebase, providing a comprehensive Backend-as-a-Service (BaaS) platform built around a dedicated PostgreSQL database.</p>
+                            <div class="bg-slate-50 p-4 rounded-lg border">
+                                <h4 class="font-bold text-lg mb-2">Core Value Proposition</h4>
+                                <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                                    <li><strong>Integrated Backend:</strong> Each project comes with built-in Authentication, file Storage, and auto-generated REST/GraphQL APIs, drastically reducing the time to build a full-stack application.</li>
+                                    <li><strong>Focus on Developer Experience (DX):</strong> Features a powerful and intuitive dashboard for managing every aspect of the backend, earning it high praise in the developer community.</li>
+                                    <li><strong>Open Source at Heart:</strong> Provides the benefits of a managed platform while being built on open source tools, giving developers more control and avoiding lock-in.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                 aiven: {
+                    name: 'Aiven',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Aiven: The Multi-Cloud Open Source Data Platform</h3>
+                             <p class="mb-6 text-slate-600">Aiven's unique position comes from its multi-cloud, open-source-first philosophy, offering a broad portfolio of data services deployable across AWS, GCP, Azure, or DigitalOcean.</p>
+                            <div class="bg-slate-50 p-4 rounded-lg border">
+                                <h4 class="font-bold text-lg mb-2">Core Value Proposition</h4>
+                                <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                                    <li><strong>Multi-Cloud Flexibility:</strong> Deploy your database on the cloud of your choice, avoiding vendor lock-in and placing your data infrastructure close to your applications.</li>
+                                    <li><strong>All-Inclusive Transparent Pricing:</strong> A single, predictable monthly fee covers compute, storage, and all networking costs. This eliminates the risk of "bill shock" from unexpected data transfer or I/O charges.</li>
+                                    <li><strong>Broad Open Source Portfolio:</strong> Beyond Postgres, Aiven offers managed Kafka, Redis, OpenSearch and more, providing a consistent management experience for your entire data stack.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                 digitalocean: {
+                    name: 'DigitalOcean',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">DigitalOcean: Simplicity and Predictable Pricing</h3>
+                             <p class="mb-6 text-slate-600">DigitalOcean has built its reputation on simplicity, a clean user experience, and predictable, developer-friendly pricing. It's a favorite among individual developers, startups, and SMBs.</p>
+                            <div class="bg-slate-50 p-4 rounded-lg border">
+                                <h4 class="font-bold text-lg mb-2">Core Value Proposition</h4>
+                                <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                                    <li><strong>Famously Simple:</strong> A straightforward, no-frills cloud platform without the overwhelming complexity of the hyperscalers.</li>
+                                    <li><strong>Predictable Pricing:</strong> Simple, tiered monthly plans with a very low entry point of $15/month. Bandwidth pricing is among the most generous and inexpensive in the industry.</li>
+                                    <li><strong>Developer-Friendly:</strong> An intuitive control panel and well-documented API make management easy for small teams and individual developers.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                 timescale: {
+                    name: 'Timescale',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Timescale: The Time-Series & Analytics Powerhouse</h3>
+                             <p class="mb-6 text-slate-600">Timescale is a managed PostgreSQL platform purpose-built and optimized for time-series, IoT, and real-time analytics workloads.</p>
+                            <div class="bg-slate-50 p-4 rounded-lg border">
+                                <h4 class="font-bold text-lg mb-2">Core Value Proposition</h4>
+                                <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                                    <li><strong>Optimized for Time-Series:</strong> Integrated TimescaleDB extension provides specialized features to handle time-stamped data challenges that general-purpose databases struggle with.</li>
+                                    <li><strong>Key Features:</strong> Includes Hypertables (auto-partitioning by time), a hybrid row-columnar storage engine for fast writes and compressed analytics, and continuous aggregates for real-time views.</li>
+                                    <li><strong>Simple, Usage-Based Pricing:</strong> Does not charge extra for network ingress/egress or I/O operations, simplifying TCO calculations.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                crunchy: {
+                    name: 'Crunchy Bridge',
+                    content: `
+                        <div class="p-6 md:p-8">
+                            <h3 class="text-2xl font-bold mb-4">Crunchy Bridge: Enterprise-Grade, Expert-Managed Postgres</h3>
+                             <p class="mb-6 text-slate-600">Crunchy Bridge is the fully managed service from Crunchy Data, a company renowned for its deep expertise and contributions to the open-source PostgreSQL project.</p>
+                            <div class="bg-slate-50 p-4 rounded-lg border">
+                                <h4 class="font-bold text-lg mb-2">Core Value Proposition</h4>
+                                <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                                    <li><strong>Expert Support:</strong> Positioned as a premium, production-ready service backed by a team of leading Postgres experts.</li>
+                                    <li><strong>Superuser Access:</strong> Provides a high degree of control over database configuration, unlike many other managed providers.</li>
+                                    <li><strong>All-Inclusive Pricing:</strong> A single price covers compute, storage, backups, connection pooling, and data transfer, with no hidden fees. Strong security posture with SOC 2 and HIPAA compliance available.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                }
+            }
+        };
+
+        // --- Cost Chart Logic ---
+        const ctx = document.getElementById('costChart').getContext('2d');
+        let costChart;
+
+        function createOrUpdateChart(scenario) {
+            const chartData = {
+                labels: DB.costs.labels,
+                datasets: [{
+                    label: 'Estimated Monthly Cost ($)',
+                    data: DB.costs[scenario],
+                    backgroundColor: DB.costs.labels.map(label => {
+                        if (label.includes('AWS')) return 'rgba(255, 153, 0, 0.7)';
+                        if (label.includes('Google')) return 'rgba(66, 133, 244, 0.7)';
+                        if (label.includes('Azure')) return 'rgba(0, 120, 212, 0.7)';
+                        if (label.includes('Neon')) return 'rgba(52, 211, 153, 0.7)';
+                        if (label.includes('DigitalOcean')) return 'rgba(0, 102, 255, 0.7)';
+                        return 'rgba(100, 116, 139, 0.6)';
+                    }),
+                    borderColor: DB.costs.labels.map(label => {
+                         if (label.includes('AWS')) return 'rgb(255, 153, 0)';
+                        if (label.includes('Google')) return 'rgb(66, 133, 244)';
+                        if (label.includes('Azure')) return 'rgb(0, 120, 212)';
+                        if (label.includes('Neon')) return 'rgb(52, 211, 153)';
+                        if (label.includes('DigitalOcean')) return 'rgb(0, 102, 255)';
+                        return 'rgb(100, 116, 139)';
+                    }),
+                    borderWidth: 1
+                }]
+            };
+
+            if (costChart) {
+                costChart.data = chartData;
+                costChart.update();
+            } else {
+                costChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'USD ($)' },
+                                ticks: {
+                                    callback: function(value, index, values) {
+                                        return '$' + value;
+                                    }
+                                }
+                            },
+                             y: {
+                                ticks: {
+                                    autoSkip: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            if(context.raw === null) return 'N/A';
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        document.querySelectorAll('.scenario-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                document.querySelectorAll('.scenario-btn').forEach(btn => {
+                    btn.classList.remove('bg-amber-500', 'text-white');
+                    btn.classList.add('bg-white', 'text-slate-700');
+                });
+                e.target.classList.add('bg-amber-500', 'text-white');
+                e.target.classList.remove('bg-white', 'text-slate-700');
+                createOrUpdateChart(e.target.dataset.scenario);
+            });
+        });
+
+        createOrUpdateChart('small');
+
+        // --- Features Table Logic ---
+        const featuresTableBody = document.getElementById('features-table-body');
+        const featureFilters = document.querySelectorAll('.feature-filter');
+
+        function renderFeaturesTable(filters) {
+            featuresTableBody.innerHTML = '';
+            let filteredData = DB.features;
+
+            if (filters.serverless) filteredData = filteredData.filter(p => p.serverless);
+            if (filters.branching) filteredData = filteredData.filter(p => p.branching);
+            if (filters.baas) filteredData = filteredData.filter(p => p.baas);
+            if (filters.soc2) filteredData = filteredData.filter(p => p.soc2);
+            if (filters.hipaa) filteredData = filteredData.filter(p => p.hipaa);
+            
+            if (filteredData.length === 0) {
+                 featuresTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-500">No providers match the selected criteria.</td></tr>`;
+                 return;
+            }
+
+            filteredData.forEach(provider => {
+                const row = document.createElement('tr');
+                row.className = 'bg-white border-b hover:bg-slate-50';
+                row.innerHTML = `
+                    <td class="py-4 px-6 font-medium text-slate-900">${provider.name}</td>
+                    <td class="py-4 px-6">${provider.pg_versions}</td>
+                    <td class="py-4 px-6">${provider.ha_model}</td>
+                    <td class="py-4 px-6">${provider.sla}</td>
+                    <td class="py-4 px-6">${provider.pitr}</td>
+                `;
+                featuresTableBody.appendChild(row);
+            });
+        }
+        
+        featureFilters.forEach(filter => {
+            filter.addEventListener('change', () => {
+                const activeFilters = {
+                    serverless: document.querySelector('[data-feature="serverless"]').checked,
+                    branching: document.querySelector('[data-feature="branching"]').checked,
+                    baas: document.querySelector('[data-feature="baas"]').checked,
+                    soc2: document.querySelector('[data-feature="soc2"]').checked,
+                    hipaa: document.querySelector('[data-feature="hipaa"]').checked,
+                };
+                renderFeaturesTable(activeFilters);
+            });
+        });
+
+        renderFeaturesTable({});
+
+        // --- Recommendation Wizard Logic ---
+        const wizardContent = document.getElementById('wizard-content');
+        const recommendationResult = document.getElementById('recommendation-result');
+        const resultTitle = document.getElementById('result-title');
+        const resultAnalysis = document.getElementById('result-analysis');
+        const restartWizardBtn = document.getElementById('restart-wizard');
+        
+        wizardContent.addEventListener('click', (e) => {
+            const button = e.target.closest('.wizard-btn');
+            if (!button) return;
+
+            const value = button.dataset.value;
+            const result = DB.recommendations[value];
+
+            if (result) {
+                resultTitle.textContent = result.candidates;
+                resultAnalysis.innerHTML = result.analysis;
+                wizardContent.classList.add('hidden');
+                recommendationResult.classList.remove('hidden');
+            }
+        });
+
+        restartWizardBtn.addEventListener('click', () => {
+            recommendationResult.classList.add('hidden');
+            wizardContent.classList.remove('hidden');
+        });
+
+         // --- Modal Logic ---
+        const modal = document.getElementById('provider-modal');
+        const modalContent = document.getElementById('modal-content');
+        
+        function openModal(providerKey) {
+            const providerData = DB.providerDetails[providerKey];
+            if (!providerData) return;
+
+            modalContent.innerHTML = `
+                <div class="flex justify-between items-center p-4 border-b bg-slate-50 rounded-t-xl">
+                    <h2 class="text-xl font-bold text-slate-800">${providerData.name}</h2>
+                    <button id="close-modal-btn" class="text-slate-500 hover:text-slate-800">&times;</button>
+                </div>
+                ${providerData.content}
+            `;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => modalContent.classList.add('modal-enter-active'), 10);
+
+            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        }
+
+        function closeModal() {
+            modalContent.classList.remove('modal-enter-active');
+            modalContent.classList.add('modal-leave-active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = '';
+                modalContent.classList.remove('modal-leave-active');
+            }, 200);
+        }
+
+        document.querySelectorAll('.provider-logo').forEach(logo => {
+            logo.addEventListener('click', () => openModal(logo.dataset.provider));
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape" && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        // --- Mobile Menu ---
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+         // --- Active Nav on Scroll ---
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('header nav a');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 120) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active-nav');
+                link.classList.add('inactive-nav');
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.classList.add('active-nav');
+                    link.classList.remove('inactive-nav');
+                }
+            });
+        });
+
+    });
+    </script>
+</body>
+</html>

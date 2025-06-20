@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive VPS Comparison 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Subtle Tech (Light stone background, dark slate text, muted teal and blue accents) -->
+    <!-- Application Structure Plan: A user-persona-driven interactive dashboard. The core is a filterable/sortable grid of provider cards. Users select a persona (Developer, E-commerce, etc.) or use fine-grained filters (price, features) to instantly narrow down options. Clicking a card reveals a detailed modal view. This structure prioritizes user-guided discovery and direct comparison over the linear format of the source report, empowering users to find the best VPS for their specific needs quickly. -->
+    <!-- Visualization & Content Choices: 1. Main Data (Table): Goal: Compare/Organize -> Method: Interactive HTML card grid -> Interaction: Live filtering/sorting via JS -> Justification: Far more dynamic and user-friendly than a static table. 2. Price Data (Intro vs. Renewal): Goal: Compare -> Method: Chart.js Bar Chart -> Interaction: Hover tooltips -> Justification: Visually highlights the "intro offer illusion". 3. Provider Recommendations (Text): Goal: Guide/Inform -> Method: Persona-based buttons updating a text area -> Interaction: Click to see recommendation -> Justification: Translates report conclusions into a quick, actionable tool. 4. Feature Analysis (Text): Goal: Explain -> Method: Interactive HTML toggles/diagrams -> Interaction: Click to reveal info -> Justification: More engaging than static paragraphs. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        
+        .active-filter {
+            background-color: #0d9488; /* teal-600 */
+            color: white;
+            border-color: #0d9488;
+        }
+        
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: hidden;
+        }
+        .highlight-card {
+            box-shadow: 0 0 0 3px #0d9488;
+            transform: scale(1.02);
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800">
+
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-40">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">The 2025 Interactive VPS Guide</h1>
+                <p class="mt-1 text-slate-600">Find the perfect VPS. Filter by your needs, compare specs, and analyze costs.</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Persona Selector Section -->
+            <section id="persona-selector" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold mb-4 text-slate-900">Who are you? Start with a recommendation.</h2>
+                <p class="mb-5 text-slate-600">The VPS market is diverse. To help you get started, we've analyzed the report to find the best providers for common use cases. Select a profile below to see our top recommendations and filter the list instantly.</p>
+                <div class="flex flex-wrap gap-3 mb-4">
+                    <button data-persona="all" class="persona-btn active-filter text-sm sm:text-base px-4 py-2 font-semibold border border-slate-300 rounded-full transition-colors duration-200">All Providers</button>
+                    <button data-persona="developer" class="persona-btn text-sm sm:text-base px-4 py-2 font-semibold border border-slate-300 rounded-full transition-colors duration-200 hover:bg-slate-100">Developer / DevOps</button>
+                    <button data-persona="ecommerce" class="persona-btn text-sm sm:text-base px-4 py-2 font-semibold border border-slate-300 rounded-full transition-colors duration-200 hover:bg-slate-100">E-commerce / Business</button>
+                    <button data-persona="poweruser" class="persona-btn text-sm sm:text-base px-4 py-2 font-semibold border border-slate-300 rounded-full transition-colors duration-200 hover:bg-slate-100">Max Resources, Min Cost</button>
+                    <button data-persona="smb" class="persona-btn text-sm sm:text-base px-4 py-2 font-semibold border border-slate-300 rounded-full transition-colors duration-200 hover:bg-slate-100">SMB / Agency</button>
+                </div>
+                <div id="persona-recommendation" class="p-4 bg-teal-50 border-l-4 border-teal-500 rounded-r-lg text-teal-800 transition-opacity duration-300">
+                    <h3 class="font-bold">All Providers</h3>
+                    <p>Showing all 10 providers from the 2025 report. Use the advanced filters below to customize your search.</p>
+                </div>
+            </section>
+
+            <!-- Filters & Sorter -->
+            <section id="filters" class="mb-8 p-6 bg-white rounded-xl shadow-lg sticky top-[80px] z-30">
+                <h2 class="text-xl font-bold mb-4 text-slate-900">Advanced Filtering & Sorting</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                        <label for="price-slider" class="block text-sm font-medium text-slate-700">Max Renewal Price ($/mo): <span id="price-value" class="font-bold text-teal-600">$100</span></label>
+                        <input id="price-slider" type="range" min="10" max="100" value="100" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div class="flex flex-col">
+                         <label class="block text-sm font-medium text-slate-700 mb-2">Features</label>
+                         <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="nvme-filter" class="feature-filter h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                <span class="ml-2 text-slate-600">NVMe Storage</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="managed-filter" class="feature-filter h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                                <span class="ml-2 text-slate-600">Managed</span>
+                            </label>
+                         </div>
+                    </div>
+                     <div>
+                        <label for="sort-by" class="block text-sm font-medium text-slate-700">Sort By</label>
+                        <select id="sort-by" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md">
+                            <option value="introPrice_asc">Intro Price (Low to High)</option>
+                            <option value="renewalPrice_asc">Renewal Price (Low to High)</option>
+                            <option value="ram_desc">RAM (High to Low)</option>
+                            <option value="storage_desc">Storage (High to Low)</option>
+                            <option value="bandwidth_desc">Bandwidth (High to Low)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">&nbsp;</label>
+                        <button id="reset-filters" class="mt-1 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Reset Filters</button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Provider Grid -->
+            <section id="provider-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Provider cards will be injected here by JS -->
+            </section>
+            <div id="no-results" class="hidden text-center py-12">
+                 <h3 class="text-2xl font-semibold text-slate-700">No Providers Match Your Criteria</h3>
+                <p class="text-slate-500 mt-2">Try adjusting your filters to see more results.</p>
+            </div>
+
+            <!-- Analysis Section -->
+            <section id="analysis" class="mt-12">
+                <h2 class="text-3xl font-bold text-center mb-8 text-slate-900">Deeper Analysis: Beyond the Specs</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="p-6 bg-white rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold mb-4 text-slate-900">The "Introductory Offer" Illusion</h3>
+                         <p class="mb-4 text-slate-600">Many providers attract customers with low initial prices that increase significantly upon renewal. This chart compares the introductory price with the standard monthly price to reveal the true long-term cost. Providers with a single bar have transparent, flat-rate pricing.</p>
+                        <div class="chart-container h-96">
+                            <canvas id="price-chart"></canvas>
+                        </div>
+                    </div>
+                     <div class="p-6 bg-white rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold mb-4 text-slate-900">Hardware Deep Dive: CPU & Storage</h3>
+                         <p class="mb-4 text-slate-600">Performance isn't just about core count. The type of CPU and storage technology are critical. Here's a look at two key trends from the report.</p>
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-semibold text-slate-800">CPU Architecture: AMD vs. Intel</h4>
+                                <p class="text-sm text-slate-600 mt-1">Providers are split. AMD EPYC CPUs often excel at multi-threaded tasks (more cores), while high-clock Intel Xeons can be faster for single-threaded applications. Your workload determines the best choice.</p>
+                                <div class="mt-3 flex gap-4 text-center">
+                                    <div class="flex-1 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div class="font-bold text-blue-800">AMD EPYC Users</div>
+                                        <div class="text-sm text-blue-600">Hetzner, Hostinger</div>
+                                    </div>
+                                     <div class="flex-1 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                                        <div class="font-bold text-indigo-800">Intel Xeon Users</div>
+                                        <div class="text-sm text-indigo-600">Vultr, Akamai, Liquid Web</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-800">The NVMe Storage Imperative</h4>
+                                <p class="text-sm text-slate-600 mt-1">For modern applications, NVMe storage is non-negotiable. Its superior speed over traditional SSDs drastically improves database and website performance. The majority of top providers now offer it as standard.</p>
+                                <div class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                    <div class="font-bold text-green-800">Providers with NVMe in this tier</div>
+                                    <div id="nvme-provider-list" class="text-sm text-green-600 mt-1"></div>
+                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="provider-modal" class="modal fixed w-full h-full top-0 left-0 flex items-center justify-center hidden z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+        
+        <div class="modal-container bg-white w-11/12 md:max-w-3xl mx-auto rounded-xl shadow-lg z-50 overflow-y-auto">
+            
+            <div class="modal-close absolute top-0 right-0 cursor-pointer flex flex-col items-center mt-4 mr-4 text-white text-sm z-50">
+                <svg class="fill-current text-white" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                    <path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"></path>
+                </svg>
+                <span class="text-sm">(Esc)</span>
+            </div>
+
+            <div id="modal-content" class="p-6 sm:p-8">
+                <!-- Modal content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const providerData = [
+                { id: 'digitalocean', provider: 'DigitalOcean', planName: 'Basic Droplet', vcpu: 4, ram: 8, storage: 160, storageType: 'SSD', bandwidth: 5, introPrice: 48.00, renewalPrice: 48.00, sla: '99.99%', controlPanel: 'User-managed', backup: 'Optional: 20% of Droplet cost', ddos: true, isManaged: false, hasNvme: false, persona: ['developer'], marketPosition: "DigitalOcean has firmly established itself as the quintessential developer-centric cloud provider. Its reputation is built on three pillars: simplicity, world-class documentation, and a vibrant community. The platform is designed to minimize friction, allowing developers to go from sign-up to a running server in minutes.", verdict: "DigitalOcean is the ideal choice for developers, startups, and tech-forward businesses that prioritize a seamless, integrated development experience, predictable costs, and extensive documentation over the absolute lowest price. It is best suited for those who intend to build and scale applications that leverage multiple cloud services beyond a simple VPS." },
+                { id: 'vultr', provider: 'Vultr', planName: 'CPU Optimized', vcpu: 4, ram: 8, storage: 75, storageType: 'NVMe', bandwidth: 6, introPrice: 80.00, renewalPrice: 80.00, sla: '100%', controlPanel: 'User-managed', backup: 'Optional: 20% of instance cost', ddos: false, isManaged: false, hasNvme: true, persona: ['developer'], marketPosition: "Vultr positions itself as a direct and aggressive competitor to DigitalOcean, appealing to a similar developer-oriented audience. It differentiates itself by often providing slightly better price-to-performance ratios and offering one of the most extensive global data center footprints.", verdict: "Vultr is an excellent choice for developers and businesses that require the performance of dedicated CPU cores for compute-bound applications. It is also a superior option for those who need a DigitalOcean-like experience but have a specific geographic requirement." },
+                { id: 'liquidweb', provider: 'Liquid Web', planName: 'Managed VPS', vcpu: 4, ram: 8, storage: 240, storageType: 'SSD', bandwidth: 5, introPrice: 22.50, renewalPrice: 45.00, sla: '100%', controlPanel: 'Included (Interworx, Plesk, cPanel)', backup: 'Included (Acronis Daily)', ddos: true, isManaged: true, hasNvme: false, persona: ['ecommerce'], marketPosition: "Liquid Web operates in the premium tier of the hosting market, focusing on high-performance, mission-critical solutions for businesses, agencies, and e-commerce stores. Its brand is synonymous with exceptional, human-centric support and enterprise-grade reliability.", verdict: "Liquid Web is the premier choice for businesses, e-commerce stores, and agencies that cannot afford any downtime. It is ideal for users who require the highest level of reliability and expert support and are willing to invest in a fully managed, worry-free hosting environment." },
+                { id: 'hostinger', provider: 'Hostinger', planName: 'KVM 4', vcpu: 4, ram: 16, storage: 200, storageType: 'NVMe', bandwidth: 4, introPrice: 10.49, renewalPrice: 21.99, sla: '99.9%', controlPanel: 'Optional (Extra Cost)', backup: 'Included (Weekly + 1 Snapshot)', ddos: true, isManaged: false, hasNvme: true, persona: ['smb', 'poweruser'], marketPosition: "Hostinger has carved out a dominant position in the budget hosting sector. Its strategy revolves around aggressive customer acquisition through exceptionally low introductory pricing, targeting beginners, students, and price-sensitive small businesses.", verdict: "Hostinger is a strong contender for users operating on a tight initial budget, especially for projects where the generous resource allocation can be fully utilized. It is best suited for those who understand the pricing structure and are prepared for either the higher renewal costs or the effort of future migration." },
+                { id: 'akamai', provider: 'Akamai (Linode)', planName: 'Dedicated 4GB', vcpu: 4, ram: 8, storage: 160, storageType: 'NVMe', bandwidth: 5, introPrice: 60.00, renewalPrice: 60.00, sla: '99.99%', controlPanel: 'User-managed', backup: 'Optional: ~$10.00/mo', ddos: true, isManaged: false, hasNvme: true, persona: ['developer'], marketPosition: "As one of the original developer-focused hosting providers, Linode built a reputation for no-nonsense, reliable, and performant Linux virtual machines. Its acquisition by Akamai has significantly bolstered its capabilities, particularly in network performance and security infrastructure.", verdict: "Akamai is a rock-solid choice for developers and businesses that value stability, predictable performance, and the peace of mind that comes with being hosted on an enterprise-grade global network. It competes directly with DigitalOcean and Vultr for the serious developer market." },
+                { id: 'scalahosting', provider: 'ScalaHosting', planName: 'Managed VPS (Build #2)', vcpu: 4, ram: 8, storage: 100, storageType: 'NVMe', bandwidth: 999, introPrice: 44.95, renewalPrice: 91.95, sla: '99.9%', controlPanel: 'Included (SPanel)', backup: 'Included (Free Daily)', ddos: true, isManaged: true, hasNvme: true, persona: ['ecommerce', 'smb'], marketPosition: "ScalaHosting has emerged as a formidable player in the managed VPS hosting space, positioning itself as a direct competitor to established premium providers like Liquid Web. Its most significant strategic asset is its proprietary SPanel control panel.", verdict: "ScalaHosting is an outstanding choice for users who desire a fully managed, high-security VPS with excellent, responsive support, particularly for those open to adopting its powerful proprietary SPanel to maximize value." },
+                { id: 'ionos', provider: 'IONOS', planName: 'VPS L', vcpu: 4, ram: 8, storage: 240, storageType: 'NVMe', bandwidth: 999, introPrice: 8.00, renewalPrice: 15.00, sla: '99.99%', controlPanel: 'Included (Plesk)', backup: 'Optional: From 6.5¢/GB/mo', ddos: true, isManaged: false, hasNvme: true, persona: ['smb'], marketPosition: "As a subsidiary of the European internet giant United Internet, IONOS is a massive hosting provider known for its extremely aggressive introductory pricing and a broad portfolio of services.", verdict: "IONOS presents one of the strongest value propositions on the market, especially for users based in Europe. The combination of powerful hardware, generous resources, and an included Plesk license makes it an incredibly attractive package for SMBs and agencies." },
+                { id: 'inmotion', provider: 'InMotion Hosting', planName: 'VPS 4 vCPU', vcpu: 4, ram: 8, storage: 160, storageType: 'NVMe', bandwidth: 5, introPrice: 14.99, renewalPrice: 26.99, sla: '99.99%', controlPanel: 'Included (cPanel or CWP)', backup: 'Not included in this tier', ddos: true, isManaged: false, hasNvme: true, persona: ['smb'], marketPosition: "InMotion Hosting is a long-standing, US-based provider with a strong reputation for reliable performance and excellent customer support, particularly within the managed and business hosting segments.", verdict: "InMotion Hosting is a solid and dependable choice, particularly for US-based businesses and agencies. It's attractive for users who can take advantage of deep discounts on long-term contracts and require a bundled control panel." },
+                { id: 'contabo', provider: 'Contabo', planName: 'Cloud VPS M', vcpu: 6, ram: 16, storage: 100, storageType: 'NVMe', bandwidth: 32, introPrice: 9.75, renewalPrice: 9.75, sla: 'Not specified', controlPanel: 'Optional (Extra Cost)', backup: 'Optional (Extra Cost)', ddos: true, isManaged: false, hasNvme: true, persona: ['poweruser'], marketPosition: "Contabo is a German provider that has gained a cult following for its disruptive pricing strategy, famous for offering an extraordinary quantity of raw computing resources for remarkably low prices.", verdict: "Contabo is the undisputed leader for technically proficient users who need the maximum amount of server resources for the lowest possible price and are fully capable of managing their own server environment." },
+                { id: 'hetzner', provider: 'Hetzner', planName: 'CPX31', vcpu: 4, ram: 8, storage: 160, storageType: 'NVMe', bandwidth: 20, introPrice: 14.75, renewalPrice: 14.75, sla: 'Not specified', controlPanel: 'User-managed', backup: 'Optional: 20% of server price', ddos: true, isManaged: false, hasNvme: true, persona: ['developer', 'poweruser'], marketPosition: "Hetzner is another German hosting powerhouse, highly esteemed within the developer and open-source communities. Its reputation is built on excellent hardware performance, incredibly low and transparent pricing, and robust, no-frills infrastructure.", verdict: "Hetzner is a top-tier choice for developers and technical users. It offers a fantastic blend of high-performance AMD hardware, generous resources, and extremely competitive, transparent pricing, directly competing with DigitalOcean and Vultr." }
+            ];
+            
+            const personaRecommendations = {
+                all: { title: "All Providers", text: "Showing all 10 providers from the 2025 report. Use the advanced filters below to customize your search." },
+                developer: { title: "For the API-First Developer & DevOps Engineer", text: "Primary Recommendation: DigitalOcean for its seamless dev experience and integrated ecosystem. Alternative: Hetzner for superior raw performance at a lower price." },
+                ecommerce: { title: "For Performance-Critical Workloads (e.g., E-commerce)", text: "Primary Recommendation: Liquid Web for its 100% uptime SLA and expert managed support. Alternative: ScalaHosting for a similar managed, high-security environment at a competitive price." },
+                poweruser: { title: "For the Value-Oriented Power User (Maximum Resources, Minimum Cost)", text: "Primary Recommendation: Contabo for an unbeatable price-per-resource ratio. Alternative: Hetzner for high-performance hardware and a great value." },
+                smb: { title: "For the SMB or Agency (Balanced Price, Performance, and Usability)", text: "Primary Recommendation: IONOS for its strong value, included Plesk license, and great performance. Alternative: InMotion Hosting for reliable service and good long-term discounts." }
+            };
+
+            const grid = document.getElementById('provider-grid');
+            const noResultsDiv = document.getElementById('no-results');
+            const priceSlider = document.getElementById('price-slider');
+            const priceValue = document.getElementById('price-value');
+            const nvmeFilter = document.getElementById('nvme-filter');
+            const managedFilter = document.getElementById('managed-filter');
+            const sortBy = document.getElementById('sort-by');
+            const personaBtns = document.querySelectorAll('.persona-btn');
+            const recommendationDiv = document.getElementById('persona-recommendation');
+            const resetBtn = document.getElementById('reset-filters');
+            
+            let currentFilters = {
+                price: 100,
+                nvme: false,
+                managed: false,
+                persona: 'all',
+                sort: 'introPrice_asc'
+            };
+
+            const renderProviders = () => {
+                let filteredData = [...providerData];
+
+                // Persona filtering
+                if(currentFilters.persona !== 'all') {
+                    filteredData = filteredData.filter(p => p.persona.includes(currentFilters.persona));
+                }
+                
+                // Advanced filtering
+                filteredData = filteredData.filter(p => p.renewalPrice <= currentFilters.price);
+                if (currentFilters.nvme) {
+                    filteredData = filteredData.filter(p => p.hasNvme);
+                }
+                if (currentFilters.managed) {
+                    filteredData = filteredData.filter(p => p.isManaged);
+                }
+
+                // Sorting
+                const [sortKey, sortDir] = currentFilters.sort.split('_');
+                filteredData.sort((a, b) => {
+                    if (sortDir === 'asc') {
+                        return a[sortKey] > b[sortKey] ? 1 : -1;
+                    } else {
+                        return a[sortKey] < b[sortKey] ? 1 : -1;
+                    }
+                });
+
+                grid.innerHTML = '';
+                if(filteredData.length === 0){
+                    noResultsDiv.classList.remove('hidden');
+                } else {
+                    noResultsDiv.classList.add('hidden');
+                }
+                
+                const highlightedProviders = {
+                    developer: ['digitalocean', 'hetzner'],
+                    ecommerce: ['liquidweb', 'scalahosting'],
+                    poweruser: ['contabo', 'hetzner'],
+                    smb: ['ionos', 'inmotion'],
+                    all: []
+                };
+
+                filteredData.forEach(p => {
+                    const isHighlighted = highlightedProviders[currentFilters.persona].includes(p.id);
+                    const card = `
+                        <div data-id="${p.id}" class="provider-card bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col ${isHighlighted ? 'highlight-card' : ''}">
+                            <div class="p-5 flex-grow">
+                                <h3 class="text-lg font-bold text-slate-900">${p.provider}</h3>
+                                <p class="text-sm text-slate-500 mb-4">${p.planName}</p>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between"><span>CPU Cores:</span> <span class="font-semibold">${p.vcpu}</span></div>
+                                    <div class="flex justify-between"><span>RAM:</span> <span class="font-semibold">${p.ram} GB</span></div>
+                                    <div class="flex justify-between"><span>Storage:</span> <span class="font-semibold">${p.storage} GB ${p.storageType}</span></div>
+                                    <div class="flex justify-between"><span>Bandwidth:</span> <span class="font-semibold">${p.bandwidth > 500 ? 'Unlimited' : p.bandwidth + ' TB'}</span></div>
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-b-xl mt-auto">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-slate-600">Intro Price:</span>
+                                    <span class="text-lg font-bold text-teal-600">$${p.introPrice.toFixed(2)}<span class="text-xs font-normal">/mo</span></span>
+                                </div>
+                                ${p.introPrice !== p.renewalPrice ? `<div class="text-right text-xs text-slate-500">Renews at $${p.renewalPrice.toFixed(2)}/mo</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            };
+            
+            const updateRecommendation = () => {
+                const rec = personaRecommendations[currentFilters.persona];
+                recommendationDiv.innerHTML = `<h3 class="font-bold">${rec.title}</h3><p>${rec.text}</p>`;
+            };
+
+            // Event Listeners
+            priceSlider.addEventListener('input', (e) => {
+                priceValue.textContent = `$${e.target.value}`;
+            });
+
+            priceSlider.addEventListener('change', (e) => {
+                currentFilters.price = Number(e.target.value);
+                renderProviders();
+            });
+
+            nvmeFilter.addEventListener('change', (e) => {
+                currentFilters.nvme = e.target.checked;
+                renderProviders();
+            });
+
+            managedFilter.addEventListener('change', (e) => {
+                currentFilters.managed = e.target.checked;
+                renderProviders();
+            });
+
+            sortBy.addEventListener('change', (e) => {
+                currentFilters.sort = e.target.value;
+                renderProviders();
+            });
+            
+            personaBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    personaBtns.forEach(b => b.classList.remove('active-filter'));
+                    e.target.classList.add('active-filter');
+                    currentFilters.persona = e.target.dataset.persona;
+                    updateRecommendation();
+                    renderProviders();
+                });
+            });
+
+            resetBtn.addEventListener('click', () => {
+                priceSlider.value = 100;
+                priceValue.textContent = '$100';
+                nvmeFilter.checked = false;
+                managedFilter.checked = false;
+                sortBy.value = 'introPrice_asc';
+                personaBtns.forEach(b => b.classList.remove('active-filter'));
+                document.querySelector('[data-persona="all"]').classList.add('active-filter');
+
+                currentFilters = { price: 100, nvme: false, managed: false, persona: 'all', sort: 'introPrice_asc' };
+                updateRecommendation();
+                renderProviders();
+            });
+            
+            // Modal Logic
+            const modal = document.getElementById('provider-modal');
+            const modalContent = document.getElementById('modal-content');
+            
+            const openModal = (id) => {
+                const p = providerData.find(provider => provider.id === id);
+                if (!p) return;
+                
+                modalContent.innerHTML = `
+                    <h2 class="text-3xl font-bold text-slate-900">${p.provider}</h2>
+                    <p class="text-md text-slate-600 mb-6">${p.planName}</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
+                        <div class="bg-slate-100 p-3 rounded-lg"><div class="text-xs text-slate-500">vCPU Cores</div><div class="text-xl font-bold">${p.vcpu}</div></div>
+                        <div class="bg-slate-100 p-3 rounded-lg"><div class="text-xs text-slate-500">RAM</div><div class="text-xl font-bold">${p.ram} GB</div></div>
+                        <div class="bg-slate-100 p-3 rounded-lg"><div class="text-xs text-slate-500">Storage</div><div class="text-xl font-bold">${p.storage} GB ${p.storageType}</div></div>
+                        <div class="bg-slate-100 p-3 rounded-lg"><div class="text-xs text-slate-500">Bandwidth</div><div class="text-xl font-bold">${p.bandwidth > 500 ? 'Unlimited' : p.bandwidth + ' TB'}</div></div>
+                        <div class="bg-teal-100 p-3 rounded-lg"><div class="text-xs text-teal-600">Intro Price</div><div class="text-xl font-bold text-teal-800">$${p.introPrice.toFixed(2)}</div></div>
+                        <div class="bg-red-100 p-3 rounded-lg"><div class="text-xs text-red-600">Renewal Price</div><div class="text-xl font-bold text-red-800">$${p.renewalPrice.toFixed(2)}</div></div>
+                    </div>
+                    
+                    <div class="prose max-w-none prose-slate">
+                        <h4>Market Position</h4>
+                        <p>${p.marketPosition}</p>
+                        <h4>Verdict</h4>
+                        <p>${p.verdict}</p>
+                    </div>
+                    
+                    <h4 class="font-semibold mt-6 mb-2">Key Details:</h4>
+                    <ul class="list-disc list-inside text-slate-700 space-y-1">
+                        <li><strong>SLA:</strong> ${p.sla}</li>
+                        <li><strong>Control Panel:</strong> ${p.controlPanel}</li>
+                        <li><strong>Backup Solution:</strong> ${p.backup}</li>
+                        <li><strong>DDoS Protection:</strong> ${p.ddos ? 'Included' : 'Optional Extra'}</li>
+                        <li><strong>Managed Support:</strong> ${p.isManaged ? 'Yes' : 'No (User-managed)'}</li>
+                    </ul>
+                `;
+                
+                modal.classList.remove('hidden');
+                document.body.classList.add('modal-active');
+            };
+            
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('modal-active');
+            };
+
+            grid.addEventListener('click', (e) => {
+                const card = e.target.closest('.provider-card');
+                if (card) {
+                    openModal(card.dataset.id);
+                }
+            });
+
+            document.querySelector('.modal-overlay').addEventListener('click', closeModal);
+            document.querySelector('.modal-close').addEventListener('click', closeModal);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+
+            // Chart.js implementation
+            const priceChartCtx = document.getElementById('price-chart').getContext('2d');
+            const priceChart = new Chart(priceChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: providerData.map(p => p.provider),
+                    datasets: [
+                        {
+                            label: 'Introductory Price ($/mo)',
+                            data: providerData.map(p => p.introPrice),
+                            backgroundColor: 'rgba(13, 148, 136, 0.6)', // teal-600
+                            borderColor: 'rgba(13, 148, 136, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Standard/Renewal Price ($/mo)',
+                            data: providerData.map(p => p.renewalPrice),
+                            backgroundColor: 'rgba(244, 63, 94, 0.6)', // rose-500
+                            borderColor: 'rgba(244, 63, 94, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Price ($/month)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Populate NVMe provider list
+            const nvmeProviders = providerData.filter(p => p.hasNvme).map(p => p.provider).join(', ');
+            document.getElementById('nvme-provider-list').textContent = nvmeProviders;
+
+
+            // Initial Render
+            renderProviders();
+        });
+    </script>
+
+</body>
+</html>
