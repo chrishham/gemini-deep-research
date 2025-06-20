@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Object Storage Comparison 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals (Background: #f5f5f4 stone-100, Text: #374151 gray-700, Primary Accent: #4338ca indigo-700, Secondary Accent: #d97706 amber-600) -->
+    <!-- Application Structure Plan: A multi-section, single-page dashboard. The structure flows from a high-level market overview to a granular, interactive provider comparison, then to a practical TCO calculator, and finally to strategic guidance. This top-down approach allows users to either get a quick overview or dive deep into the details that matter most to them. An interactive card-based system for providers was chosen over a static table to improve readability on all devices and allow for focused comparison through filtering, which directly addresses the report's goal of helping users make a strategic choice. -->
+    <!-- Visualization & Content Choices: 1. Market Share: Report data on market share -> Goal: Inform -> Viz: Chart.js Donut Chart -> Interaction: Hover to see details -> Justification: Instantly communicates market dominance of the hyperscalers. 2. Price Comparison (Storage, Egress): Report's pricing matrix -> Goal: Compare -> Viz: Chart.js Bar Charts -> Interaction: Charts dynamically update based on user-selected filters (audience, pricing model) -> Justification: Allows for direct, apples-to-apples comparison of the most critical cost factors. 3. Provider Details: Report's in-depth analysis -> Goal: Organize/Inform -> Presentation: HTML/Tailwind CSS cards with JS show/hide -> Interaction: Clicking a filter updates the visible cards; clicking a card could expand for more detail -> Justification: Breaks down dense text into manageable, filterable chunks. 4. TCO Model: Report's TCO section concepts -> Goal: Explore/Educate -> Presentation: HTML form + JS calculator -> Interaction: User inputs storage/egress values to see real-time cost estimates for different provider types -> Justification: Makes the abstract concept of TCO tangible and demonstrates the impact of egress fees, a key theme of the report. NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 300px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .bar-chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .provider-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .provider-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-gray-800">
+
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-sm">
+        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-700">Object Storage 2025</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#overview" class="nav-link text-gray-600">Market Overview</a>
+                <a href="#comparison" class="nav-link text-gray-600">Provider Comparison</a>
+                <a href="#tco" class="nav-link text-gray-600">TCO Calculator</a>
+                <a href="#guidance" class="nav-link text-gray-600">Decision Framework</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">The State of Managed Object Storage</h2>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                An interactive guide to the 2025 market landscape. With data projected to hit 175 zettabytes by 2025, choosing the right storage provider is more critical than ever.
+            </p>
+        </header>
+
+        <section id="overview" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-2">Market Overview</h3>
+            <p class="text-md text-gray-600 text-center max-w-2xl mx-auto mb-10">
+                The object storage market is dominated by three hyperscale providers, who collectively hold 63% of the market. However, a dynamic ecosystem of global players and cost-disruptors is challenging the status quo by offering specialized services and simpler pricing models.
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="chart-container">
+                    <canvas id="marketShareChart"></canvas>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-bold text-lg text-indigo-700">Tier 1: The Hyperscalers</h4>
+                        <p class="text-gray-600">AWS, Microsoft Azure, and Google Cloud leverage their vast service ecosystems and enterprise relationships to maintain market leadership.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-amber-600">Tier 2: Major Global Players</h4>
+                        <p class="text-gray-600">IBM, Oracle, and Alibaba Cloud target specific regions and regulated industries with specialized, high-performance offerings.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-emerald-600">Tier 3: The Cost Disruptors</h4>
+                        <p class="text-gray-600">Providers like Wasabi, Backblaze, and DigitalOcean compete on price transparency and low-to-zero egress fees, unbundling storage from the full cloud stack.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-2">Interactive Provider Comparison</h3>
+            <p class="text-md text-gray-600 text-center max-w-2xl mx-auto mb-10">
+                Choosing a provider involves balancing cost, features, and performance. Use the filters and charts below to compare providers based on your primary needs. Click on a provider's card to see a detailed analysis.
+            </p>
+            
+            <div class="bg-white p-4 rounded-lg shadow-md mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="font-semibold text-gray-700">Primary Audience</label>
+                        <select id="audienceFilter" class="w-full mt-1 p-2 border rounded-md">
+                            <option value="all">All Audiences</option>
+                            <option value="enterprise">Enterprise</option>
+                            <option value="developer">Developer & SMB</option>
+                            <option value="data">Data Analytics & AI/ML</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-semibold text-gray-700">Key Differentiator</label>
+                        <select id="featureFilter" class="w-full mt-1 p-2 border rounded-md">
+                            <option value="all">All Features</option>
+                            <option value="low_egress">Low/No Egress Fees</option>
+                            <option value="cdn">Integrated CDN</option>
+                            <option value="high_performance">High-Performance Tier</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-semibold text-gray-700">S3 API Compatibility</label>
+                        <select id="s3ApiFilter" class="w-full mt-1 p-2 border rounded-md">
+                            <option value="all">All</option>
+                            <option value="yes">Yes</option>
+                            <option value="subset">Subset/Interoperable</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-bold text-center mb-4">Cost Comparison: Standard Storage</h4>
+                    <div class="bar-chart-container">
+                        <canvas id="storageCostChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-bold text-center mb-4">Cost Comparison: Data Egress</h4>
+                    <div class="bar-chart-container">
+                        <canvas id="egressCostChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="providerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+        </section>
+
+        <section id="tco" class="mb-20 scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-2">Total Cost of Ownership (TCO) Calculator</h3>
+            <p class="text-md text-gray-600 text-center max-w-3xl mx-auto mb-10">
+                The sticker price for storage is only part of the story. Egress fees and API calls can dramatically impact your final bill. Use this calculator to model your workload and see how different pricing structures compare.
+            </p>
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <div class="grid md:grid-cols-3 gap-8 mb-8">
+                    <div>
+                        <label for="storageAmount" class="block font-semibold mb-2">Storage Amount (TB)</label>
+                        <input type="range" id="storageAmount" min="1" max="1000" value="100" class="w-full">
+                        <div class="text-center font-bold text-indigo-700 mt-2"><span id="storageAmountValue">100</span> TB</div>
+                    </div>
+                    <div>
+                        <label for="egressAmount" class="block font-semibold mb-2">Monthly Egress (TB)</label>
+                        <input type="range" id="egressAmount" min="0" max="100" value="10" class="w-full">
+                        <div class="text-center font-bold text-indigo-700 mt-2"><span id="egressAmountValue">10</span> TB</div>
+                    </div>
+                     <div>
+                        <label for="writeRequests" class="block font-semibold mb-2">Write Requests (Millions)</label>
+                        <input type="range" id="writeRequests" min="0" max="10" value="1" step="0.1" class="w-full">
+                        <div class="text-center font-bold text-indigo-700 mt-2"><span id="writeRequestsValue">1.0</span> Million</div>
+                    </div>
+                </div>
+                <div id="tcoResults" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </div>
+        </section>
+
+        <section id="guidance" class="scroll-mt-20">
+            <h3 class="text-3xl font-bold text-center mb-2">Strategic Decision Framework</h3>
+             <p class="text-md text-gray-600 text-center max-w-3xl mx-auto mb-10">
+                Making the right choice requires looking beyond raw numbers. This framework, based on the report's key findings, highlights the strategic questions you should ask to select a provider that aligns with your long-term goals.
+            </p>
+            <div class="space-y-4" id="guidanceAccordion">
+            </div>
+        </section>
+
+    </main>
+    
+    <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 opacity-0 pointer-events-none">
+        <div id="modalContent" class="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-300">
+        </div>
+    </div>
+
+
+    <script>
+        const providerData = [
+            {
+                id: 'aws',
+                name: 'Amazon S3',
+                logo: 'AWS',
+                marketShare: 29,
+                audience: ['enterprise', 'data'],
+                differentiator: ['high_performance'],
+                s3Api: 'native',
+                verdict: "The most powerful, feature-rich, and configurable service, but its complexity can lead to significant cost overruns if not managed carefully.",
+                pricing: { storage: 0.023, egress: 0.09, writeOps: 0.005, readOps: 0.0004 },
+                freeEgress: 0.1,
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">With a 29% market share, Amazon S3 is the undisputed leader. It is the default choice for organizations deeply integrated into the expansive AWS ecosystem. Its ideal use cases include building data lakes of virtually unlimited scale, providing the storage backend for global SaaS platforms, and powering complex serverless analytics pipelines.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">S3's primary differentiator is its unmatched feature depth. It offers eleven distinct storage classes, from the high-performance S3 Express One Zone to the low-cost S3 Glacier Deep Archive. A standout feature is S3 Intelligent-Tiering, which automatically moves objects between access tiers based on usage patterns, optimizing costs without manual intervention.</p>
+                `
+            },
+            {
+                id: 'azure',
+                name: 'Azure Blob Storage',
+                logo: 'Azure',
+                marketShare: 22,
+                audience: ['enterprise'],
+                differentiator: ['high_performance'],
+                s3Api: 'no',
+                verdict: "A powerful and mature offering whose primary strength lies in its seamless integration into the broader Microsoft enterprise stack.",
+                pricing: { storage: 0.0184, egress: 0.087, writeOps: 0.0081, readOps: 0.0005 },
+                freeEgress: 0.1,
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">As the strong number two provider with a 22% market share, Azure Blob Storage is the natural choice for organizations heavily invested in the Microsoft software ecosystem (Microsoft 365, Windows Server, Entra ID). It excels in hybrid cloud deployments and enterprise-grade data lakes.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">A key differentiator for Azure is Azure Data Lake Storage (ADLS) Gen2, which adds a hierarchical namespace and POSIX-style access controls, significantly easing the migration of traditional on-premises big data workloads from systems like HDFS.</p>
+                `
+            },
+            {
+                id: 'gcp',
+                name: 'Google Cloud Storage',
+                logo: 'GCP',
+                marketShare: 12,
+                audience: ['data'],
+                differentiator: ['high_performance'],
+                s3Api: 'subset',
+                verdict: "The symbiotic relationship with Google's world-class data and AI platforms is GCS's primary appeal, making it a strategic choice for data-driven companies.",
+                pricing: { storage: 0.026, egress: 0.12, writeOps: 0.005, readOps: 0.0004 },
+                freeEgress: 0.001,
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">Google Cloud is the established number three hyperscaler. GCS is best suited for organizations with a strategic focus on data analytics, artificial intelligence, and machine learning, due to its tight integration with services like BigQuery and Vertex AI.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">A key differentiating feature is Autoclass, which intelligently and automatically transitions objects between storage tiers based on their access patterns. This is particularly valuable for workloads with unpredictable data access patterns.</p>
+                `
+            },
+            {
+                id: 'wasabi',
+                name: 'Wasabi Hot Cloud Storage',
+                logo: 'Wasabi',
+                marketShare: 2,
+                audience: ['developer'],
+                differentiator: ['low_egress'],
+                s3Api: 'yes',
+                verdict: "Wasabi has successfully attacked the Achilles' heel of the hyperscalers—unpredictable egress fees—offering a 'no-surprises' billing promise.",
+                pricing: { storage: 0.0068, egress: 0, writeOps: 0, readOps: 0 },
+                freeEgress: Infinity,
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">Wasabi is a leading cost-disruptor. It is the ideal choice for workloads that are egress-heavy and sensitive to unpredictable costs, such as backup and recovery, media content delivery, video surveillance archives, and active archiving.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">Wasabi's defining feature is its pricing model. It offers a single, high-performance 'hot' storage tier with zero fees for data egress or API requests. This eliminates the most complex and unpredictable variables in cloud storage billing.</p>
+                `
+            },
+            {
+                id: 'backblaze',
+                name: 'Backblaze B2',
+                logo: 'Backblaze',
+                marketShare: 1,
+                audience: ['developer', 'media'],
+                differentiator: ['low_egress', 'high_performance'],
+                s3Api: 'yes',
+                verdict: "Competes effectively on price while offering a more flexible model for smaller users, and its Bandwidth Alliance is a savvy strategic move.",
+                pricing: { storage: 0.006, egress: 0.01, writeOps: 0, readOps: 0.0004 },
+                freeEgress: -1, // Special case: 3x stored data
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">Backblaze B2 is a prominent cost-disruptor with a strong following among developers, SMBs, and the media industry. It is excellent for CDN origin storage, large-scale media archives, and cost-effective backups.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">A significant strategic differentiator is its participation in the Bandwidth Alliance, a partnership with CDN providers like Cloudflare, which allows for free data egress from Backblaze B2 to these partner networks.</p>
+                `
+            },
+            {
+                id: 'ibm',
+                name: 'IBM Cloud Object Storage',
+                logo: 'IBM',
+                marketShare: 2,
+                audience: ['enterprise', 'regulated'],
+                differentiator: [],
+                s3Api: 'subset',
+                verdict: "A highly specialized tool engineered for enterprises with specific, high-stakes requirements for data protection, extreme durability, and compliance.",
+                pricing: { storage: 0.023, egress: 0.09, writeOps: 0.0052, readOps: 0.00042 },
+                freeEgress: 0,
+                 details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">IBM targets the enterprise market, with a strong focus on regulated industries, large-scale data analytics, and complex hybrid cloud deployments. Ideal use cases include petabyte-scale analytics and long-term data archiving for businesses needing to meet strict compliance mandates.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">The core technological differentiator is its patented Information Dispersal Algorithm (IDA), a form of erasure coding that provides extremely high data durability with significantly less storage overhead than traditional triple-replication methods.</p>
+                `
+            },
+            {
+                id: 'oracle',
+                name: 'Oracle Cloud Storage',
+                logo: 'Oracle',
+                marketShare: 3,
+                audience: ['enterprise', 'data'],
+                differentiator: ['low_egress'],
+                s3Api: 'yes',
+                verdict: "Oracle's strategy is clear: attract enterprise workloads by aggressively undercutting the competition on price, particularly on data egress.",
+                pricing: { storage: 0.0255, egress: 0.0085, writeOps: 0.00034, readOps: 0.00034 },
+                freeEgress: 10240, // 10TB
+                 details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">OCI is an enterprise-focused provider that competes by offering a significant price-performance advantage. It is particularly well-suited for existing Oracle database customers and high-performance computing (HPC) workloads.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">A key differentiator is its generous egress policy. The first 10 TB of data transfer out per month is free, a substantially more generous allowance than offered by AWS, Azure, or GCP, which can lead to significant cost savings.</p>
+                `
+            },
+            {
+                id: 'digitalocean',
+                name: 'DigitalOcean Spaces',
+                logo: 'DO',
+                marketShare: 1,
+                audience: ['developer'],
+                differentiator: ['cdn', 'low_egress'],
+                s3Api: 'yes',
+                verdict: "The 'easy button' for object storage, focusing on simplicity, developer experience, and predictable billing for its target audience.",
+                pricing: { storage: 0.02, egress: 0.01, writeOps: 0, readOps: 0 },
+                freeEgress: 1024, // 1TB
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">DigitalOcean is a cloud provider focused squarely on the needs of developers, startups, and SMBs. Its object storage service, Spaces, is designed for simplicity and predictable pricing, ideal for hosting static assets and storing user-generated content.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">A major value-add is the built-in Content Delivery Network (CDN), which is included at no additional cost and can be enabled with a few clicks to accelerate content delivery to a global audience. Pricing is a simple flat rate.</p>
+                `
+            },
+            {
+                id: 'alibaba',
+                name: 'Alibaba Cloud OSS',
+                logo: 'Alibaba',
+                marketShare: 4,
+                audience: ['enterprise'],
+                differentiator: ['cdn'],
+                s3Api: 'yes',
+                verdict: "For any organization with a significant business presence in the Asia-Pacific region, Alibaba Cloud OSS is a primary contender.",
+                pricing: { storage: 0.0173, egress: 0.076, writeOps: 0.005, readOps: 0.0004 },
+                freeEgress: 0,
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">Alibaba Cloud is the dominant cloud provider in the Asia-Pacific region. Its Object Storage Service (OSS) is the default choice for any business operating in or targeting customers in China and the broader APAC region, particularly where compliance with local data sovereignty laws is a requirement.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">The service offers an extensive feature set comparable to AWS S3, including a wide range of storage classes and high durability (12 nines). Its key strength is deep integration with the vast ecosystem of other Alibaba Cloud services.</p>
+                `
+            },
+            {
+                id: 'akamai',
+                name: 'Akamai (Linode) OS',
+                logo: 'Akamai',
+                marketShare: 1,
+                audience: ['developer'],
+                differentiator: ['cdn', 'low_egress', 'high_performance'],
+                s3Api: 'yes',
+                verdict: "Evolving into the distributed storage backend for Akamai's massive global edge platform, making it a compelling choice for global content delivery.",
+                pricing: { storage: 0.02, egress: 0.005, writeOps: 0, readOps: 0 },
+                freeEgress: 1024, // 1TB
+                details: `
+                    <h4 class="font-bold text-lg mb-2">Market Position & Ideal Use Cases</h4>
+                    <p class="mb-4">Formerly Linode, this service now targets developers and businesses that need to store and deliver content globally with minimal latency. It is an excellent choice for hosting website assets and serving media files on a distributed edge network.</p>
+                    <h4 class="font-bold text-lg mb-2">Core Features & Differentiators</h4>
+                    <p class="mb-4">The core differentiator is its native integration with Akamai's world-leading CDN. Recent platform upgrades have significantly boosted performance and scale, supporting up to 20,000 requests per second (RPS) and 5 petabytes of storage per bucket.</p>
+                `
+            }
+        ];
+
+        const guidanceData = [
+            {
+                title: "Choosing by Use Case: Align Provider to Your Goal",
+                content: "The most effective way to narrow the field is to match providers' core strengths to your primary use case. For large-scale enterprise analytics, stick with the Hyperscalers (AWS, Azure, GCP). For egress-heavy workloads like media streaming or backup, the cost-disruptors (Wasabi, Backblaze) are financially superior. For developer-focused projects prioritizing simplicity, look to DigitalOcean or Akamai."
+            },
+            {
+                title: "Understanding True Cost: Beyond Price per Gigabyte",
+                content: "A critical error is focusing solely on storage cost. The true Total Cost of Ownership (TCO) must account for your workload's access patterns. Model the 'Egress Tax' (fees for data transfer out), API call overhead for 'chatty' applications, and minimum storage duration penalties on colder tiers. An archive can become more expensive than hot storage if data is accessed unexpectedly."
+            },
+            {
+                title: "The S3 API Compatibility Caveat: Test, Don't Assume",
+                content: "'S3 compatibility' is a spectrum, not a certified standard. While it's a massive accelerator, providers may only support a 'subset' of the S3 API or have quirks (e.g., URL style support). This doesn't absolve you of the need for rigorous testing. A single unsupported API call can break a critical workflow. Always conduct a proof-of-concept with your specific toolchain."
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const marketShareCtx = document.getElementById('marketShareChart').getContext('2d');
+            const storageCostCtx = document.getElementById('storageCostChart').getContext('2d');
+            const egressCostCtx = document.getElementById('egressCostChart').getContext('2d');
+            
+            const audienceFilter = document.getElementById('audienceFilter');
+            const featureFilter = document.getElementById('featureFilter');
+            const s3ApiFilter = document.getElementById('s3ApiFilter');
+            const providerGrid = document.getElementById('providerGrid');
+            const guidanceAccordion = document.getElementById('guidanceAccordion');
+
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modalContent');
+            
+            let storageCostChart, egressCostChart;
+
+            function renderMarketShareChart() {
+                const hyperscalers = providerData.filter(p => ['aws', 'azure', 'gcp'].includes(p.id));
+                const globalPlayers = providerData.filter(p => ['ibm', 'oracle', 'alibaba'].includes(p.id));
+                const others = 100 - hyperscalers.reduce((s, p) => s + p.marketShare, 0) - globalPlayers.reduce((s,p) => s + p.marketShare, 0);
+
+                new Chart(marketShareCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Hyperscalers (AWS, Azure, GCP)', 'Major Global Players (IBM, Oracle, Alibaba)', 'Others & Specialists'],
+                        datasets: [{
+                            data: [
+                                hyperscalers.reduce((s, p) => s + p.marketShare, 0),
+                                globalPlayers.reduce((s, p) => s + p.marketShare, 0),
+                                others
+                            ],
+                            backgroundColor: ['#4338ca', '#d97706', '#16a34a'],
+                            borderColor: '#f5f5f4',
+                            borderWidth: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw.toFixed(1)}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateBarCharts(filteredProviders) {
+                const labels = filteredProviders.map(p => p.name);
+                const storageCosts = filteredProviders.map(p => p.pricing.storage);
+                const egressCosts = filteredProviders.map(p => p.pricing.egress);
+
+                if (storageCostChart) storageCostChart.destroy();
+                storageCostChart = new Chart(storageCostCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Storage Cost ($/GB/month)',
+                            data: storageCosts,
+                            backgroundColor: '#4338ca',
+                        }]
+                    },
+                    options: getBarChartOptions('Storage Cost ($ per GB/month)')
+                });
+                
+                if (egressCostChart) egressCostChart.destroy();
+                egressCostChart = new Chart(egressCostCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Egress Cost ($/GB, after free tier)',
+                            data: egressCosts,
+                            backgroundColor: '#d97706',
+                        }]
+                    },
+                    options: getBarChartOptions('Egress Cost ($ per GB)')
+                });
+            }
+
+            function getBarChartOptions(titleText) {
+                return {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(3);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: false, text: titleText },
+                         tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: $${context.raw.toFixed(4)}`;
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+
+            function renderProviderGrid(filteredProviders) {
+                providerGrid.innerHTML = '';
+                filteredProviders.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'provider-card bg-white rounded-lg shadow-md p-6 cursor-pointer flex flex-col justify-between';
+                    card.innerHTML = `
+                        <div>
+                            <h4 class="text-xl font-bold mb-2">${p.name}</h4>
+                            <p class="text-gray-600 text-sm mb-4">${p.verdict}</p>
+                        </div>
+                        <div class="mt-4">
+                            <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                                Storage: $${p.pricing.storage.toFixed(4)}/GB
+                            </span>
+                             <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-amber-600 bg-amber-200 ml-2">
+                                Egress: ${p.pricing.egress > 0 ? '$' + p.pricing.egress.toFixed(2) + '/GB' : 'Free'}
+                            </span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => showModal(p));
+                    providerGrid.appendChild(card);
+                });
+            }
+
+            function showModal(provider) {
+                modalContent.innerHTML = `
+                    <div class="p-6 md:p-8">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-3xl font-bold">${provider.name}</h3>
+                            <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                        </div>
+                        <div class="text-gray-700">${provider.details}</div>
+                    </div>
+                `;
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modalContent.classList.remove('scale-95');
+                document.getElementById('closeModalBtn').addEventListener('click', hideModal);
+            }
+
+            function hideModal() {
+                 modal.classList.add('opacity-0', 'pointer-events-none');
+                 modalContent.classList.add('scale-95');
+            }
+            
+            modal.addEventListener('click', (e) => {
+                if(e.target === modal) hideModal();
+            });
+
+            function filterAndRender() {
+                const audience = audienceFilter.value;
+                const feature = featureFilter.value;
+                const s3Api = s3ApiFilter.value;
+
+                let filtered = providerData.filter(p => {
+                    const audienceMatch = audience === 'all' || p.audience.includes(audience);
+                    const featureMatch = feature === 'all' || p.differentiator.includes(feature);
+                    const s3ApiMatch = s3Api === 'all' || p.s3Api === s3Api || (s3Api === 'subset' && p.s3Api === 'subset');
+                    return audienceMatch && featureMatch && s3ApiMatch;
+                });
+                renderProviderGrid(filtered);
+                updateBarCharts(filtered);
+            }
+            
+            function renderGuidanceAccordion() {
+                guidanceAccordion.innerHTML = '';
+                guidanceData.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white rounded-lg shadow-md';
+                    div.innerHTML = `
+                        <button class="w-full text-left p-4 flex justify-between items-center font-semibold text-lg" data-index="${index}">
+                            <span>${item.title}</span>
+                            <span class="transform transition-transform duration-300">&#9662;</span>
+                        </button>
+                        <div class="overflow-hidden max-h-0 transition-max-height duration-500 ease-in-out px-4">
+                            <p class="pb-4 text-gray-600">${item.content}</p>
+                        </div>
+                    `;
+                    guidanceAccordion.appendChild(div);
+                });
+
+                guidanceAccordion.addEventListener('click', (e) => {
+                    const button = e.target.closest('button');
+                    if (!button) return;
+
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('span:last-child');
+                    
+                    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                        content.style.maxHeight = '0px';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            }
+
+
+            // TCO Calculator Logic
+            const storageAmountSlider = document.getElementById('storageAmount');
+            const egressAmountSlider = document.getElementById('egressAmount');
+            const writeRequestsSlider = document.getElementById('writeRequests');
+            const storageAmountValue = document.getElementById('storageAmountValue');
+            const egressAmountValue = document.getElementById('egressAmountValue');
+            const writeRequestsValue = document.getElementById('writeRequestsValue');
+            const tcoResults = document.getElementById('tcoResults');
+
+            function calculateTCO() {
+                const storage = parseFloat(storageAmountSlider.value);
+                const egress = parseFloat(egressAmountSlider.value);
+                const writes = parseFloat(writeRequestsSlider.value) * 1000000;
+
+                storageAmountValue.textContent = storage.toLocaleString();
+                egressAmountValue.textContent = egress.toLocaleString();
+                writeRequestsValue.textContent = (writes / 1000000).toFixed(1);
+
+                const tcoProviders = providerData.filter(p => ['aws', 'wasabi', 'backblaze'].includes(p.id));
+                
+                tcoResults.innerHTML = '';
+                tcoProviders.forEach(p => {
+                    const storageCost = storage * 1024 * p.pricing.storage;
+                    
+                    let egressCost = 0;
+                    if(p.id === 'backblaze') {
+                        const freeEgressTB = storage * 3;
+                        egressCost = Math.max(0, egress - freeEgressTB) * 1024 * p.pricing.egress;
+                    } else {
+                        const freeEgressTB = p.freeEgress / 1024;
+                        egressCost = Math.max(0, egress - freeEgressTB) * 1024 * p.pricing.egress;
+                    }
+
+                    const writeCost = (writes / 1000) * p.pricing.writeOps;
+
+                    const totalCost = storageCost + egressCost + writeCost;
+
+                    const resultCard = document.createElement('div');
+                    resultCard.className = 'bg-stone-50 p-4 rounded-lg border';
+                    resultCard.innerHTML = `
+                        <h4 class="font-bold text-xl mb-2">${p.name}</h4>
+                        <div class="text-3xl font-bold text-indigo-700 mb-4">$${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-lg font-normal text-gray-500">/mo</span></div>
+                        <div class="text-sm space-y-1 text-gray-600">
+                           <p>Storage: $${storageCost.toFixed(2)}</p>
+                           <p>Egress: $${egressCost.toFixed(2)}</p>
+                           <p>Writes: $${writeCost.toFixed(2)}</p>
+                        </div>
+                    `;
+                    tcoResults.appendChild(resultCard);
+                });
+            }
+
+            [storageAmountSlider, egressAmountSlider, writeRequestsSlider].forEach(slider => {
+                slider.addEventListener('input', calculateTCO);
+            });
+            
+            // Initial render
+            renderMarketShareChart();
+            filterAndRender();
+            renderGuidanceAccordion();
+            calculateTCO();
+
+            audienceFilter.addEventListener('change', filterAndRender);
+            featureFilter.addEventListener('change', filterAndRender);
+            s3ApiFilter.addEventListener('change', filterAndRender);
+        });
+    </script>
+</body>
+</html>
