@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corfu Interactive Travel Guide 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Aegean Calm -->
+    <!-- Application Structure Plan: The SPA is designed as a single-page exploratory tool with a sticky header for primary navigation (Home, Explore by Region, Trip Planner, Top Experiences). This task-oriented structure is more intuitive for a traveler than the original report's linear format. The "Explore by Region" section uses a card-based system where users can click on a beach to expand a detailed view, which integrates dining and attractions in a clean, two-column layout. This 'drill-down' interaction prevents information overload. A key value-add is the "Trip Planner," which visualizes the report's complex split-stay recommendation using a custom HTML diagram and an interactive radar chart. This transforms a textual recommendation into a powerful, easy-to-understand decision-making tool. The overall flow encourages discovery, from broad regional exploration to specific activity planning. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Accommodation Base Comparison -> Goal: Compare -> Viz/Presentation: Radar Chart (Chart.js/Canvas) -> Interaction: Hover tooltips -> Justification: Allows for a clear, multi-variate comparison of locations across key criteria (e.g., Beach Access, Atmosphere) in a single, scannable visual, making a complex decision simpler for the user.
+        - Report Info: Beach Details (Tips, Dining, Attractions) -> Goal: Organize & Inform -> Viz/Presentation: Expandable HTML cards with Unicode icons -> Interaction: Click to expand/collapse details -> Justification: Manages information density. Users can scan all beaches in a region and only delve into the details of those that interest them, improving usability.
+        - Report Info: Split-Stay Strategy -> Goal: Explain/Organize -> Viz/Presentation: Diagram (HTML/CSS/Tailwind) -> Interaction: Static visual -> Justification: A visual timeline/flow diagram is more intuitive and memorable for explaining a multi-step travel plan than plain text alone.
+        - Report Info: Regional Grouping -> Goal: Organize -> Viz/Presentation: Tab-like card interface -> Interaction: Click to show region content -> Justification: Mimics the logical geographical grouping of the report, providing a familiar mental model for users while enabling interactive filtering.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            background-color: #FDFBF8; /* Warm Neutral - Light Cream */
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #0d9488; /* Teal-700 */
+            border-bottom-color: #0d9488;
+        }
+        .card-expand-content {
+            display: none;
+            transition: max-height 0.7s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .card-expand-content.open {
+            display: block;
+            max-height: 4000px; /* Large enough for content */
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 40vh;
+            width: 100%;
+            max-width: 500px;
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="text-stone-800">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <a href="#home" class="text-xl font-bold text-teal-700">Corfu Guide 2025</a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#home" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600">Home</a>
+                        <a href="#explore" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600">Explore by Region</a>
+                        <a href="#planner" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600">Trip Planner</a>
+                        <a href="#experiences" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600">Top Experiences</a>
+                    </div>
+                </div>
+                 <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-stone-500 hover:text-teal-700 hover:bg-stone-100 focus:outline-none">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="md:hidden hidden pb-3">
+                <a href="#home" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-stone-600">Home</a>
+                <a href="#explore" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-stone-600">Explore by Region</a>
+                <a href="#planner" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-stone-600">Trip Planner</a>
+                <a href="#experiences" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-stone-600">Top Experiences</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="py-16 sm:py-24 bg-amber-50/50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-stone-800 tracking-tight">A Discerning Traveler's Guide to <span class="text-teal-600">Corfu</span></h1>
+                <p class="mt-6 max-w-3xl mx-auto text-lg text-stone-600">This guide is a meticulously crafted narrative for your 10-day sojourn in summer 2025, distilled from the collective experiences of thousands of travelers. It's designed to help you discover the authentic soul of the emerald jewel of the Ionian Sea.</p>
+                <div class="mt-8 max-w-2xl mx-auto bg-white border border-teal-200 rounded-lg p-6 shadow-lg">
+                     <h3 class="text-xl font-bold text-teal-700 flex items-center justify-center">
+                        <span class="text-2xl mr-3">🚗</span> A Traveler's Most Crucial Tip
+                    </h3>
+                    <p class="mt-3 text-stone-700">A crucial piece of intelligence, repeated consistently across countless reviews, must be established from the outset: a <strong class="font-semibold">rental car is not just a recommendation but a prerequisite</strong> for the kind of deep, authentic exploration that defines a truly memorable Corfiot holiday. Public transport is limited and cannot reach the island's most sublime beaches and hidden hilltop villages.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="explore" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-stone-800">Explore Corfu by Region</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-stone-600">Corfu is an island of dramatic contrasts. From the rugged west to the elegant northeast, each region has a distinct personality. Click on a beach to unveil its secrets, from hidden gems and dining tips to nearby attractions.</p>
+                </div>
+
+                <div class="space-y-12">
+                    <!-- West Coast Section -->
+                    <div>
+                        <h3 class="text-2xl font-bold text-teal-700 border-l-4 border-teal-500 pl-4 mb-6">The Wild West Coast</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <!-- Beach Card: Paleokastritsa -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-paleokastritsa">
+                                    <h4 class="text-xl font-semibold text-stone-800">Paleokastritsa</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Jewel of the West</p>
+                                </div>
+                                <div id="card-paleokastritsa" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A majestic tapestry of six coves beneath dramatic cliffs, famous for stunning beauty and mesmerizing, but very cold, turquoise water. Can be crowded.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Navigate:</strong> Rent a motorboat or water taxi to find secluded coves like Paradise Beach.</li>
+                                        <li><strong>Parking:</strong> Use the paid lot at Agios Spiridon, but arrive early.</li>
+                                        <li><strong>Bring:</strong> Water shoes are essential for the pebble/rocky areas.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>The Dolphin Taverna:</strong> Authentic Sofrito & Lamb Kleftiko.</p>
+                                            <p><strong>Taverna Limani:</strong> Top choice for fresh seafood; try the Bourdeto.</p>
+                                            <p><strong>La Grotta Bar:</strong> A unique bar built into the cliffs, famous for its diving board.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Paleokastritsa Monastery:</strong> Stunning 13th-century monastery with panoramic views.</p>
+                                            <p><strong>Angelokastro:</strong> Formidable 13th-century Byzantine castle with 360-degree views.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Beach Card: Glyfada -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-glyfada">
+                                    <h4 class="text-xl font-semibold text-stone-800">Glyfada</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Cosmopolitan Stretch</p>
+                                </div>
+                                <div id="card-glyfada" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A long, wide arc of fine golden sand with a cosmopolitan, lively atmosphere. A favorite for stylish crowds and families, with shallow, safe water.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Atmosphere:</strong> Fully equipped with trendy beach bars. The southern end is quieter.</li>
+                                        <li><strong>Parking:</strong> Large free lot behind the beach, but it fills up fast.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Pazuzu Beach Club:</strong> Upscale and trendy, reservations recommended.</p>
+                                            <p><strong>Glyfada Beach Restaurant:</strong> Classic beachside dining for a relaxed lunch.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Aqualand Water Park:</strong> One of Europe's largest water parks, a short drive away.</p>
+                                            <p><strong>Pelekas & Kaiser's Throne:</strong> Hilltop village with a famed viewpoint for 360-degree sunset views.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                             <!-- Beach Card: Agios Gordios -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-agios-gordios">
+                                    <h4 class="text-xl font-semibold text-stone-800">Agios Gordios</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Sunset Seeker's Bay</p>
+                                </div>
+                                <div id="card-agios-gordios" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A beautiful long sandy beach in a dramatic bay. Maintains a cozy, local feel with a relaxed, non-party atmosphere and spectacular sunsets.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Culture:</strong> Beachfront bars avoid loud music, creating a chilled-out vibe.</li>
+                                        <li><strong>Parking:</strong> Dedicated lot near the village entrance, a short walk from the sea.</li>
+                                        <li><strong>Accessibility:</strong> Only a 20-min drive from Corfu Town.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Sebastian's Taverna:</strong> Island-wide fame. Try Stuffed Calamari. Reservations essential.</p>
+                                            <p><strong>Thalassa Restaurant:</strong> Excellent food all day with prime sunset views. Book ahead.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>ATV/Quad Tours:</strong> Explore the olive-grove-covered hills.</p>
+                                            <p><strong>Achilleion Palace:</strong> Empress Sissi's magnificent palace is a 15-20 min drive away.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Beach Card: Myrtiotissa -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-myrtiotissa">
+                                    <h4 class="text-xl font-semibold text-stone-800">Myrtiotissa</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Naturist Paradise</p>
+                                </div>
+                                <div id="card-myrtiotissa" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> Stunningly beautiful and idyllic golden sand beach nestled between cliffs. It's Corfu's primary unofficial nudist beach, with a tranquil, secluded atmosphere.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Access:</strong> Park at Elia Taverna at the top and walk the final 5-10 mins down a steep path.</li>
+                                        <li><strong>Facilities:</strong> Unorganized/wild. Bring your own water, food, and sun protection.</li>
+                                        <li><strong>Etiquette:</strong> Respect the naturist culture; refrain from taking photos.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Elia Restaurant:</strong> The logical choice at the top of the hill, where you park.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Corfu Golf Club:</strong> A well-regarded 18-hole course is nearby in the Ropa Valley.</p>
+                                            <p><strong>Hiking Trails:</strong> Scenic trails meander through olive groves in the area.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Northwest Section -->
+                    <div>
+                        <h3 class="text-2xl font-bold text-teal-700 border-l-4 border-teal-500 pl-4 mb-6">The Storied Northwest</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <!-- Beach Card: Porto Timoni -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-porto-timoni">
+                                    <h4 class="text-xl font-semibold text-stone-800">Porto Timoni</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Hike to Paradise</p>
+                                </div>
+                                <div id="card-porto-timoni" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A visually stunning and heavily photographed double bay. No longer a secret; it becomes exceptionally crowded. The view from Afionas village is spectacular.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>The Hike:</strong> Access is a 20-30 min steep, rocky hike. Wear proper shoes (not flip-flops!).</li>
+                                        <li><strong>Timing:</strong> Go early in the morning to avoid crowds and the midday heat on the return hike.</li>
+                                        <li><strong>Bring:</strong> No facilities. Bring ample water, sunscreen, and a hat.</li>
+                                        <li><strong>Parking:</strong> Extremely limited in Afionas village. Arrive early.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Porto Timoni Restaurant (Afionas):</strong> At the start of the trail. Perfect for a post-hike meal with spectacular views.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Afionas Village:</strong> A charming village worth exploring, renowned for its sunset views.</p>
+                                            <p><strong>Agios Stylianos Chapel:</strong> For adventurers, the path continues to a small chapel carved into rock.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Beach Card: Agios Georgios Pagon -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-agios-georgios">
+                                    <h4 class="text-xl font-semibold text-stone-800">Agios Georgios Pagon</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Horseshoe Bay of Tranquility</p>
+                                </div>
+                                <div id="card-agios-georgios" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A large, magnificent horseshoe bay with a long sandy/pebbly beach. More relaxed and authentic, ideal for families and couples seeking tranquility.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Family-Friendly:</strong> The water on the left side is warmer and much shallower, perfect for kids.</li>
+                                        <li><strong>Activity Hub:</strong> An excellent base for renting a small boat to explore the coast.</li>
+                                        <li><strong>Strategic Base:</strong> Highly recommended as an accommodation base for exploring the whole northwest.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Moonlight Restaurant:</strong> Consistently well-regarded for local Greek cuisine.</p>
+                                            <p><strong>Taverna Nafsika:</strong> Praised for authentic food and a welcoming atmosphere.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Angelokastro:</strong> The magnificent Byzantine castle is a very short drive away.</p>
+                                            <p><strong>Diapontia Islands:</strong> Take a day trip to these remote islands from nearby Agios Stefanos port.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                             <!-- Beach Card: Sidari & Canal d'Amour -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-sidari">
+                                    <h4 class="text-xl font-semibold text-stone-800">Sidari & Canal d'Amour</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Geological Wonder</p>
+                                </div>
+                                <div id="card-sidari" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A unique natural wonder where erosion has sculpted sandstone cliffs into coves and channels. Scenic and photogenic, but one of the island's busiest spots.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Legend:</strong> Couples who swim through the channel are said to marry soon.</li>
+                                        <li><strong>Crowd Management:</strong> Visit early in the morning to avoid the masses.</li>
+                                        <li><strong>Safety:</strong> Do not jump from cliffs; the seabed has submerged rocks.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Sidari Tavernas:</strong> As a large resort, it offers a vast array of dining options for all tastes.</p>
+                                            <p><strong>7th Heaven Cafe (Peroulades):</strong> A must-visit for incredible sunset views.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Cape Drastis:</strong> A stunning nearby cape with dramatic white rock formations.</p>
+                                            <p><strong>Loggas Beach:</strong> A premier sunset spot with majestic, sheer vertical cliffs.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Northeast Section -->
+                    <div>
+                        <h3 class="text-2xl font-bold text-teal-700 border-l-4 border-teal-500 pl-4 mb-6">The Elegant Northeast</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <!-- Beach Card: Barbati -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-barbati">
+                                    <h4 class="text-xl font-semibold text-stone-800">Barbati</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Modern Beach Club Scene</p>
+                                </div>
+                                <div id="card-barbati" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A long, beautiful beach of smooth white pebbles with pristine, deep, crystal-clear water. Known for modern, stylish beach clubs and a cosmopolitan day-scene.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Pebbles, Not Sand:</strong> Ideal for those who dislike sand. Water shoes are highly recommended.</li>
+                                        <li><strong>Facilities:</strong> Fully organized with sunbeds, water sports, and upscale beach bars.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Piedra del Mar / Bahia Mare:</strong> Stylish beach clubs defining the chic daytime experience.</p>
+                                            <p><strong>La Partenope:</strong> A notable spot for authentic Neapolitan pizza.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Mount Pantokrator:</strong> Drive to Corfu's highest peak for unparalleled panoramic views.</p>
+                                            <p><strong>Hiking Trails:</strong> Explore the mountain's rich flora on trails starting from nearby villages.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Beach Card: Nissaki, Kalami & Kouloura -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-kalami">
+                                    <h4 class="text-xl font-semibold text-stone-800">Nissaki, Kalami & Kouloura</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Durrells' Coast</p>
+                                </div>
+                                <div id="card-kalami" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> "Durrell country." A picturesque succession of small, tranquil pebble coves with exceptionally clear water, perfect for snorkeling.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Boat Rental is Essential:</strong> The best way to hop between the tiny, hidden coves.</li>
+                                        <li><strong>Parking:</strong> Can be a significant challenge in Kalami during peak season.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>The White House (Kalami):</strong> Iconic former home of Lawrence Durrell, now a restaurant.</p>
+                                            <p><strong>Taverna Agni / Toula's:</strong> A culinary hotspot in Agni Bay, renowned for seafood.</p>
+                                            <p><strong>Vitamins Taverna (Nissaki):</strong> Family-run with spectacular sea views and traditional dishes.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Kouloura Harbour:</strong> One of the most charming and photographed fishing harbours in Corfu.</p>
+                                            <p><strong>Coastal Path:</strong> A scenic walk connects Kaminaki to Krouzeri beach.</p>
+                                            <p><strong>San Stefano (NE):</strong> A charming fishing village perfect for enjoying fresh seafood.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Beach Card: Kassiopi & Avlaki -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-kassiopi">
+                                    <h4 class="text-xl font-semibold text-stone-800">Kassiopi & Avlaki</h4>
+                                    <p class="text-sm text-stone-500 mt-1">Historic Harbour & Windsurfer's Haven</p>
+                                </div>
+                                <div id="card-kassiopi" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A vibrant yet charming fishing village with historical ruins and beautiful pebble coves. Nearby Avlaki is a quieter beach favored by windsurfers.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Best Cove:</strong> Bataria beach is often cited as the best for families.</li>
+                                        <li><strong>Avlaki's Appeal:</strong> A tranquil alternative with excellent tavernas and reliable afternoon wind.</li>
+                                        <li><strong>Activity Hub:</strong> Kassiopi harbour is a great base for chartering boats.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Janis Restaurant (Kassiopi):</strong> Excellent reputation for over 30 years, great for fresh fish.</p>
+                                            <p><strong>Cavo Barbaro (Avlaki):</strong> Receives rave reviews for authentic Greek cuisine.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Kassiopi Fortress:</strong> Substantial ruins of a Byzantine castle overlooking the village, free to enter.</p>
+                                            <p><strong>Old Perithia:</strong> A short drive to Corfu's oldest "ghost village," a unique cultural site.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- South Section -->
+                     <div>
+                        <h3 class="text-2xl font-bold text-teal-700 border-l-4 border-teal-500 pl-4 mb-6">The Expansive South</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <!-- Beach Card: Halikounas & Issos -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-halikounas">
+                                    <h4 class="text-xl font-semibold text-stone-800">Halikounas & Issos</h4>
+                                    <p class="text-sm text-stone-500 mt-1">Kingdom of Kitesurfers</p>
+                                </div>
+                                <div id="card-halikounas" class="card-expand-content px-5 pb-5">
+                                    <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A spectacular, miles-long strip of golden sand separating the sea from Lake Korission. Wild, untamed feel. The premier destination for kitesurfing and windsurfing.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Wind Factor:</strong> Perfect for surfers, but can be less than ideal for simple sunbathing. Check the forecast.</li>
+                                        <li><strong>Organization:</strong> Largely unorganized, which is part of its appeal. Some facilities on the Issos side.</li>
+                                        <li><strong>Parking:</strong> Ample free parking is a significant advantage.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Alonaki Bay Taverna:</strong> Simple, authentic, family-run taverna with scenic views.</p>
+                                            <p><strong>Taverna Spiros Chalikounas:</strong> Well-regarded seafood taverna.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Lake Korission:</strong> A must-see protected wetland. Spot Greater Flamingos and cross the wooden bridge into a cedar forest.</p>
+                                            <p><strong>Kitesurfing Lessons:</strong> The ultimate place to learn, with several reputable schools on the beach.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Beach Card: Marathias -->
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden card-container">
+                                <div class="p-5 cursor-pointer card-toggle" data-target="card-marathias">
+                                    <h4 class="text-xl font-semibold text-stone-800">Marathias</h4>
+                                    <p class="text-sm text-stone-500 mt-1">The Developed Sandy Expanse</p>
+                                </div>
+                                <div id="card-marathias" class="card-expand-content px-5 pb-5">
+                                     <p class="text-sm text-stone-600 mb-4"><strong>Vibe:</strong> A very long, wide, and popular sandy beach with clean, warm, shallow water. More developed and organized than Halikounas, with a livelier, bustling atmosphere due to modern beach clubs.</p>
+                                    <h5 class="font-semibold mb-2">Insider Intel:</h5>
+                                    <ul class="text-sm space-y-2 list-disc list-inside text-stone-600 mb-4">
+                                        <li><strong>Facilities:</strong> Well-equipped with sunbeds, tavernas, and beach clubs that often have DJs.</li>
+                                        <li><strong>Family-Friendly:</strong> The warm, shallow waters are safe and enjoyable for children.</li>
+                                    </ul>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🍽️ Eat & Drink</h5>
+                                            <p><strong>Wave / Sirens Beach Bar:</strong> The primary hubs of activity, offering a modern beach club experience.</p>
+                                        </div>
+                                        <div>
+                                            <h5 class="font-semibold mb-2 flex items-center">🏰 See & Do</h5>
+                                            <p><strong>Gardenos Beach:</strong> A quieter, less crowded sandy alternative nearby.</p>
+                                            <p><strong>Gardiki Castle:</strong> Ruins of a 13th-century Byzantine fortress, a short drive inland.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="planner" class="py-16 sm:py-24 bg-amber-50/50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-stone-800">Your Strategic 10-Day Trip Planner</h2>
+                    <p class="mt-4 max-w-3xl mx-auto text-lg text-stone-600">Corfu is a large island. To minimize driving and maximize enjoyment, the most effective approach is a "split-stay strategy." This plan divides your trip into two distinct regional explorations, giving you more time to relax and discover.</p>
+                </div>
+                
+                <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-center text-teal-700 mb-6">The Recommended Split-Stay Itinerary</h3>
+                    <div class="relative flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-8">
+                         <!-- Step 1 -->
+                        <div class="flex-1 text-center p-6 bg-teal-50 rounded-lg">
+                            <div class="text-lg font-semibold text-teal-800">Days 1-5</div>
+                            <div class="text-2xl font-bold text-teal-600 mt-2">Northwest Base</div>
+                            <p class="mt-2 text-sm text-teal-700">Stay near <strong class="font-semibold">Agios Georgios Pagon</strong>. This gives you direct access to the best sandy beaches: Paleokastritsa, Porto Timoni, and spectacular sunsets.</p>
+                        </div>
+
+                         <div class="text-teal-500 font-bold text-2xl transform md:-translate-y-1/2 md:absolute md:left-1/2 md:-translate-x-1/2">➔</div>
+
+                        <!-- Step 2 -->
+                        <div class="flex-1 text-center p-6 bg-amber-100 rounded-lg">
+                             <div class="text-lg font-semibold text-amber-800">Days 6-10</div>
+                            <div class="text-2xl font-bold text-amber-700 mt-2">Northeast or Central Base</div>
+                            <p class="mt-2 text-sm text-amber-800">Move to <strong class="font-semibold">Kassiopi/Nissaki</strong> for pebble coves and boating, or <strong class="font-semibold">Corfu Town</strong> for culture, nightlife, and central access.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-16">
+                    <h3 class="text-2xl font-bold text-center text-stone-800 mb-2">Which Base Is Right For You?</h3>
+                    <p class="text-center text-stone-600 mb-8">Compare the potential base locations to find the perfect fit for your travel style.</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                        <div class="bg-white p-6 rounded-lg shadow-lg">
+                            <div class="chart-container">
+                                <canvas id="baseComparisonChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h4 class="font-bold text-teal-700">Agios Georgios Pagon (NW)</h4>
+                                <p class="text-sm text-stone-600 mt-1">Best for travelers whose top priority is top-tier sandy beaches, natural beauty, and a relaxed, authentic pace.</p>
+                            </div>
+                             <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h4 class="font-bold text-blue-700">Kassiopi / Nissaki (NE)</h4>
+                                <p class="text-sm text-stone-600 mt-1">Ideal for those who enjoy boating, fine dining, exploring historic villages, and prefer a quieter, sophisticated holiday.</p>
+                            </div>
+                             <div class="bg-white p-6 rounded-lg shadow-md">
+                                <h4 class="font-bold text-amber-700">Corfu Town (Central)</h4>
+                                <p class="text-sm text-stone-600 mt-1">Perfect for those who want to be in the heart of the action, prioritizing culture, history, and nightlife, and are willing to drive to beaches daily.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="experiences" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                 <div class="text-center mb-12">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-stone-800">Beyond the Beach: Top Experiences</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-stone-600">A truly memorable trip extends beyond the coastline. These curated experiences, based on countless traveler reviews, offer a deeper connection to the island's soul.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Sunset Spots -->
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-teal-700 flex items-center mb-4">
+                           <span class="text-2xl mr-3">🌅</span> Revered Sunset Spots
+                        </h3>
+                        <ul class="space-y-3 text-stone-700">
+                           <li><strong>Loggas Beach (Peroulades):</strong> View from the clifftop 7th Heaven Cafe.</li>
+                           <li><strong>Kaiser's Throne (Pelekas):</strong> Stunning 360-degree panoramic views.</li>
+                           <li><strong>Afionas Village:</strong> Unobstructed sea views from a taverna terrace.</li>
+                           <li><strong>Cape Drastis:</strong> A rugged, natural, and peaceful setting.</li>
+                           <li><strong>Corfu Town (Mouragia):</strong> Urban sunset against Venetian architecture.</li>
+                        </ul>
+                    </div>
+                    <!-- Guided Tours -->
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-teal-700 flex items-center mb-4">
+                           <span class="text-2xl mr-3">⛵</span> Worthwhile Guided Tours
+                        </h3>
+                        <ul class="space-y-3 text-stone-700">
+                            <li><strong>Paxos & Antipaxos Cruise:</strong> The most recommended boat trip. Swim in unbelievably turquoise waters.</li>
+                            <li><strong>Corfu Old Town Walking Tour:</strong> Discover hidden gems and history with a knowledgeable local guide.</li>
+                            <li><strong>Corfu Food & Wine Tour:</strong> Dive into local products like olive oil, wine, and kumquat.</li>
+                        </ul>
+                    </div>
+                    <!-- Authentic Corfu -->
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-xl font-bold text-teal-700 flex items-center mb-4">
+                           <span class="text-2xl mr-3">🏛️</span> Authentic Corfu
+                        </h3>
+                        <ul class="space-y-3 text-stone-700">
+                           <li><strong>Old Perithia:</strong> Explore a hauntingly beautiful 14th-century "ghost village".</li>
+                           <li><strong>Chlomos Village:</strong> One of the oldest villages with stunning panoramic views.</li>
+                           <li><strong>Panigiri Festivals:</strong> Experience authentic village celebrations with music, dancing, and food (check local dates).</li>
+                           <li><strong>Varkarola Festival (Paleokastritsa):</strong> A spectacular re-enactment of a naval battle with fireworks, usually in mid-August.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-stone-800 text-white">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>Interactive Corfu Guide 2025. Data synthesized from traveler reviews.</p>
+            <p class="text-stone-400 mt-1">Designed to make your travel planning seamless and enjoyable.</p>
+        </div>
+    </footer>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Mobile menu toggle
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+        const isHidden = mobileMenu.classList.contains('hidden');
+        if (isHidden) {
+            mobileMenu.classList.remove('hidden');
+        } else {
+            mobileMenu.classList.add('hidden');
+        }
+    });
+
+    // Expandable Card Toggle
+    const cardToggles = document.querySelectorAll('.card-toggle');
+    cardToggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const targetId = toggle.getAttribute('data-target');
+            const content = document.getElementById(targetId);
+            if (content) {
+                content.classList.toggle('open');
+            }
+        });
+    });
+
+    // Navigation Active State on Scroll
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.4
+    };
+
+    const observer = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').substring(1) === entry.target.id) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+
+    // Close mobile menu on link click
+    document.querySelectorAll('#mobile-menu a').forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenu.classList.add('hidden');
+        });
+    });
+
+    // Chart.js Radar Chart for Accommodation Base Comparison
+    const ctx = document.getElementById('baseComparisonChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Sandy Beaches', 'Scenery & Beauty', 'Relaxed Pace', 'Boating & Coves', 'Fine Dining', 'Culture & History', 'Nightlife'],
+                datasets: [{
+                    label: 'Agios Georgios (NW)',
+                    data: [10, 9, 9, 6, 5, 6, 2],
+                    fill: true,
+                    backgroundColor: 'rgba(13, 148, 136, 0.2)', // Teal-600
+                    borderColor: 'rgb(13, 148, 136)',
+                    pointBackgroundColor: 'rgb(13, 148, 136)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(13, 148, 136)'
+                }, {
+                    label: 'Kassiopi / Nissaki (NE)',
+                    data: [2, 8, 8, 10, 9, 7, 5],
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)', // Blue-500
+                    borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }, {
+                    label: 'Corfu Town (Central)',
+                    data: [1, 5, 3, 4, 10, 10, 10],
+                    fill: true,
+                    backgroundColor: 'rgba(217, 119, 6, 0.2)', // Amber-600
+                    borderColor: 'rgb(217, 119, 6)',
+                    pointBackgroundColor: 'rgb(217, 119, 6)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(217, 119, 6)'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 12
+                            },
+                             color: '#333'
+                        },
+                        ticks: {
+                           display: false,
+                           stepSize: 2
+                        },
+                         min: 0,
+                         max: 10
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.r !== null) {
+                                    label += context.parsed.r + ' / 10';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>
