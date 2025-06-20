@@ -1,26 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My Topics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Deep Research Reports</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     body {
-      font-family: sans-serif;
-      margin: 2em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      background-color: #f8f9fa;
     }
-    a {
+    
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 0.5rem;
+      font-size: 2.5rem;
+    }
+    
+    .subtitle {
+      color: #7f8c8d;
+      font-size: 1.1rem;
+      margin-bottom: 0;
+    }
+    
+    .reports-section {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .year-group {
+      margin-bottom: 2rem;
+    }
+    
+    .year-title {
+      color: #34495e;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e9ecef;
+    }
+    
+    .report-link {
       display: block;
-      margin: 0.5em 0;
+      padding: 1rem 1.5rem;
+      margin: 0.5rem 0;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
       text-decoration: none;
-      color: blue;
+      color: #2980b9;
+      transition: all 0.3s ease;
+    }
+    
+    .report-link:hover {
+      background: #e3f2fd;
+      border-color: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(41,128,185,0.15);
+    }
+    
+    .report-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .report-description {
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding: 1rem;
+      color: #6c757d;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
-  <h1>Welcome to My Site</h1>
-  <p>Select a topic:</p>
-  <a href="topic1.html">Topic 1: HTML Basics</a>
-  <a href="topic2.html">Topic 2: CSS Tricks</a>
-  <a href="topic3.html">Topic 3: JavaScript Fun</a>
+  <div class="header">
+    <h1>Gemini Deep Research</h1>
+    <p class="subtitle">Interactive reports powered by AI research and analysis</p>
+  </div>
+
+  <div class="reports-section">
+    <div class="year-group">
+      <h2 class="year-title">2025 Reports</h2>
+      
+      <a href="2025/PostgreSQL Providers Comparison, 2025.html" class="report-link">
+        <div class="report-title">PostgreSQL Providers Comparison</div>
+        <div class="report-description">Interactive analysis of managed PostgreSQL services including AWS RDS, Google AlloyDB, Neon, Supabase, and more</div>
+      </a>
+      
+      <a href="2025/VPS Provider Comparison, 2025.html" class="report-link">
+        <div class="report-title">VPS Provider Comparison</div>
+        <div class="report-description">Comprehensive comparison of VPS hosting providers with interactive filtering and cost analysis</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Reports generated using Gemini AI • Hosted on GitHub Pages</p>
+  </div>
 </body>
 </html>
