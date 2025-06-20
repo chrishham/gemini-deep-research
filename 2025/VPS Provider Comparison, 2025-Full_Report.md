@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # The 2025 State of Managed PostgreSQL: A Comprehensive Analysis for Technical Leaders
 
 ## I. Executive Summary: The Evolving PostgreSQL Hosting Landscape
